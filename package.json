@@ -1,0 +1,39 @@
+{
+  "name": "oblag",
+  "version": "1.0.0",
+  "description": "Federated social network implementing ActivityPub.",
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "prettier --check .",
+    "prepare": "husky install && npm run lint",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hperrin/oblag.git"
+  },
+  "author": "Hunter Perrin, Nick Antolos",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/hperrin/oblag/issues"
+  },
+  "homepage": "https://github.com/hperrin/oblag#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^17.4.4",
+    "@commitlint/config-conventional": "^17.4.4",
+    "@tsconfig/recommended": "^1.0.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.0",
+    "prettier": "2.8.4",
+    "prettier-plugin-svelte": "^2.9.0"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  },
+  "dependencies": {
+    "commander": "^10.0.0",
+    "dotenv": "^16.0.3",
+    "ts-node": "^10.9.1"
+  }
+}

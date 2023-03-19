@@ -1,0 +1,233 @@
+// We need the color palette.
+@use '@material/theme/color-palette';
+
+// Import all the typography styles for the classes.
+@use '@material/typography/mdc-typography';
+@use '@material/typography/index' as typography;
+
+// This adds classes like "mdc-theme--primary-bg".
+@use '@material/theme/styles';
+
+// Main Top App Bar styling.
+@use '@material/top-app-bar/index' as top-app-bar;
+.mdc-top-app-bar.app-top-app-bar {
+  // Position it above the drawer.
+  z-index: 7;
+}
+
+html {
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+}
+
+body,
+#nymph-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.drawer-container {
+  flex-grow: 1;
+  height: 0;
+  display: flex;
+}
+
+.app-drawer,
+.app-main-content {
+  overflow: auto;
+  height: 100%;
+}
+
+.app-drawer.app-drawer-adjust {
+  padding-bottom: top-app-bar.$row-height;
+}
+
+.app-drawer-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.app-drawer-list {
+  flex-basis: 0;
+  flex-grow: 1;
+  overflow: auto;
+}
+
+.app-app-content {
+  flex: auto;
+  position: relative;
+  width: 0;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main-content {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.app-main-content > section {
+  padding: 48px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-main-content > section:after {
+  height: 32px;
+  display: block;
+  content: ' ';
+}
+
+html {
+  @include typography.typography('body1');
+}
+
+h1 {
+  @include typography.typography('headline1');
+  margin-bottom: 0;
+}
+
+h2 {
+  @include typography.typography('headline2');
+  margin-bottom: 0;
+}
+
+h3 {
+  @include typography.typography('headline3');
+  margin-bottom: 0;
+}
+
+h4 {
+  @include typography.typography('headline4');
+  margin-bottom: 0;
+}
+
+h5 {
+  @include typography.typography('headline5');
+  margin-bottom: 0;
+}
+
+h6 {
+  @include typography.typography('headline6');
+  margin-bottom: 0;
+}
+
+caption {
+  @include typography.typography('caption');
+}
+
+code,
+pre {
+  font-family: 'Roboto Mono', monospace;
+}
+
+small {
+  font-size: 0.9em;
+}
+
+big {
+  font-size: 1.1em;
+}
+
+b,
+strong {
+  font-weight: bold;
+}
+
+.app-top-app-bar-content {
+  justify-content: space-between;
+
+  > .solo-container {
+    flex-grow: 1;
+  }
+}
+
+.solo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+// Using a * before to make the styles more specific.
+.smui-paper.solo-paper {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  margin: 0 12px;
+  padding: 0 12px;
+  height: 48px;
+  color: var(--mdc-theme-on-surface, #000);
+
+  .solo-container-compact & {
+    margin: 0;
+  }
+}
+.smui-paper.solo-paper > * {
+  display: inline-block;
+  margin: 0 12px;
+}
+.smui-paper.solo-paper .solo-icon {
+  color: var(--mdc-theme-on-surface, #000);
+  height: 60%;
+}
+.smui-paper.solo-paper .solo-button {
+  color: var(--mdc-theme-on-surface, #000);
+}
+.mdc-text-field__input.solo-input {
+  flex-grow: 1;
+  color: var(--mdc-theme-on-surface, #000);
+
+  .solo-container-compact & {
+    margin: 0;
+  }
+}
+.mdc-text-field__input.solo-input::placeholder {
+  color: var(--mdc-theme-on-surface, #000);
+  opacity: 0.6;
+}
+
+.page-content {
+  margin: 0;
+  margin-bottom: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+.page-content.page-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  padding: 1rem;
+}
+
+.page-content.page-controls > div {
+  display: inline-flex;
+  margin-bottom: 1rem;
+}
+
+.app-failure {
+  margin: 1em;
+  padding: 1em;
+  background-color: var(--mdc-theme-surface, #f7f7f8);
+  color: var(--mdc-theme-error, color-palette.$deep-orange-500);
+  border: 1px solid var(--mdc-theme-error, color-palette.$deep-orange-500);
+  border-radius: 4px;
+}
+
+// SVG Icon Button Fix
+.mdc-icon-button {
+  line-height: 1;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 100%;
+}

@@ -1,0 +1,41 @@
+# General
+.DS_Store
+node_modules
+.AppleDouble
+.LSOverride
+.idea
+.cloud
+.project
+tmp/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Development Data Stores
+/development.db
+/development.db-journal
+/development.db-wal
+/development.db-shm
+
+# Web and Frontend App
+/app/build
+/app/.svelte-kit
+/app/package
+/app/static/smui.css
+/app/static/smui-dark.css
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

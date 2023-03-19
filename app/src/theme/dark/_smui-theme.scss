@@ -1,0 +1,30 @@
+@use 'sass:color';
+
+@use '@material/theme/color-palette';
+
+$background: #000;
+
+@use '@material/theme/index' as theme with (
+  $primary: color-palette.$teal-500,
+  $secondary: color-palette.$pink-400,
+  $surface: color-palette.$grey-900,
+  $background: $background,
+  $error: color-palette.$deep-orange-900
+);
+
+$color: if(theme.contrast-tone($background) == 'dark', #000, #fff);
+
+@use '../site';
+
+html,
+body {
+  background-color: $background;
+  color: $color;
+}
+
+a {
+  color: color-palette.$blue-200;
+}
+a:visited {
+  color: color-palette.$deep-purple-200;
+}

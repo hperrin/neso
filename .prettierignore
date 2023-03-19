@@ -1,0 +1,12 @@
+# General
+node_modules
+tmp/
+
+# Web and Frontend App
+/app/build
+/app/.svelte-kit
+/app/package
+/app/static/*.css
+
+# Visual Studio Code
+.vscode
