@@ -8,9 +8,19 @@ import {
   corsMiddleware,
   WSADDRESS,
   WSPORT,
+  apexMiddleware,
 } from './middleware.js';
 
 const { default: createServer } = nymphjsPubsub;
+
+const apexApp = () => {
+  return {
+    name: 'apex-middleware',
+    configureServer(server) {
+      server.middlewares.use(apexMiddleware);
+    },
+  };
+};
 
 const nymphApp = () => {
   let pubSubServer = null;
@@ -40,7 +50,7 @@ const nymphApp = () => {
 
 /** @type {import('vite').UserConfig} */
 const config = {
-  plugins: [nymphApp(), sveltekit()],
+  plugins: [apexApp(), nymphApp(), sveltekit()],
 };
 
 export default config;

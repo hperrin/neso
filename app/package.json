@@ -23,6 +23,7 @@
     "@nymphjs/server": "^1.0.0-beta.14",
     "@nymphjs/tilmeld": "^1.0.0-beta.14",
     "@nymphjs/tilmeld-setup": "^1.0.0-beta.14",
+    "activitypub-express": "^4.2.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "helmet": "^6.0.1",

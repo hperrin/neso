@@ -155,6 +155,7 @@ export function getNymphInstance({
       verifyChangeRedirect: ADDRESS,
       cancelChangeRedirect: ADDRESS,
       jwtSecret: JWT_SECRET,
+      enableUserSearch: true,
     });
 
     nymph = new Nymph({}, driver, tilmeld);
