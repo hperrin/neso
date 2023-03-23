@@ -5,6 +5,15 @@ declare module '_activitypub' {
     publicKeyPem: string;
   }
 
+  export interface Endpoints {
+    proxyUrl?: string;
+    oauthAuthorizationEndpoint?: string;
+    oauthTokenEndpoint?: string;
+    provideClientKey?: string;
+    signClientKey?: string;
+    sharedInbox?: string;
+  }
+
   //
   // Base Types
   //
@@ -17,8 +26,8 @@ declare module '_activitypub' {
   export type APLinkRel = string;
 
   export interface APBase {
-    type?: string | APanyURI | (string | APanyURI)[];
-    id?: APanyURI;
+    type: string | APanyURI | (string | APanyURI)[];
+    id?: APanyURI | null;
   }
 
   export type APStringLink = string;
@@ -41,7 +50,7 @@ declare module '_activitypub' {
   export type APLink = APObjectLink | APStringLink;
 
   export interface APObject extends APBase {
-    type?: 'Object' | string | APanyURI | ('Object' | string | APanyURI)[];
+    type: 'Object' | string | APanyURI | ('Object' | string | APanyURI)[];
     attachment?: APObject | APLink | (APObject | APLink)[];
     attributedTo?: APObject | APLink | (APObject | APLink)[];
     audience?: APObject | APLink | (APObject | APLink)[];
@@ -72,6 +81,9 @@ declare module '_activitypub' {
     duration?: APDuration;
 
     context?: APObject | APLink | (APObject | APLink)[];
+    source?: APObject;
+    likes?: APCollection | APOrderedCollection | APLink | APanyURI;
+    shares?: APCollection | APOrderedCollection | APLink | APanyURI;
   }
 
   //
@@ -107,7 +119,7 @@ declare module '_activitypub' {
 
   export interface APActivity extends APObject {
     actor: APActor | APanyURI | (APActor | APanyURI)[] | string[];
-    object: APObject | APLink | (APObject | APLink)[];
+    object?: APObject | APLink | (APObject | APLink)[];
     target?: APObject | APLink | (APObject | APLink)[];
     result?: APObject | APLink | (APObject | APLink)[];
     origin?: APObject | APLink | (APObject | APLink)[];
@@ -128,6 +140,8 @@ declare module '_activitypub' {
 
   export interface APAddActivity extends APActivity {
     type: 'Add' | ('Add' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
+    target: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APArriveActivity extends APIntransitiveActivity {
@@ -136,14 +150,17 @@ declare module '_activitypub' {
 
   export interface APCreateActivity extends APActivity {
     type: 'Create' | ('Create' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APDeleteActivity extends APActivity {
     type: 'Delete' | ('Delete' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APFollowActivity extends APActivity {
     type: 'Follow' | ('Follow' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APIgnoreActivity extends APActivity {
@@ -160,6 +177,7 @@ declare module '_activitypub' {
 
   export interface APLikeActivity extends APActivity {
     type: 'Like' | ('Like' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APOfferActivity extends APActivity {
@@ -181,14 +199,18 @@ declare module '_activitypub' {
 
   export interface APRemoveActivity extends APActivity {
     type: 'Remove' | ('Remove' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
+    target: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APUndoActivity extends APActivity {
     type: 'Undo' | ('Undo' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APUpdateActivity extends APActivity {
     type: 'Update' | ('Update' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APViewActivity extends APActivity {
@@ -217,6 +239,7 @@ declare module '_activitypub' {
 
   export interface APBlockActivity extends APActivity {
     type: 'Block' | ('Block' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APFlagActivity extends APActivity {
@@ -244,14 +267,16 @@ declare module '_activitypub' {
   //
 
   export interface APActor extends APObject {
+    inbox: string;
+    outbox: string;
     following?: string;
     followers?: string;
     liked?: string;
-    inbox?: string;
-    outbox?: string;
     name?: string;
     preferredUsername?: string;
     summary?: string;
+    streams?: string[];
+    endpoints?: Endpoints | APanyURI;
     publicKey?: PublicKey;
     _meta?: {
       privateKey?: string;

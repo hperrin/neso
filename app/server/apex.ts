@@ -1,4 +1,6 @@
 import type { Nymph } from '@nymphjs/nymph';
+import { guid } from '@nymphjs/guid';
+import { User as UserClass } from '@nymphjs/tilmeld';
 import type {
   IApexStore,
   Context,
@@ -10,23 +12,15 @@ import type {
 } from 'activitypub-express';
 import ActivitypubExpress from 'activitypub-express';
 
-export const routes = {
-  actor: '/u/:actor',
-  object: '/o/:id',
-  activity: '/s/:id',
-  inbox: '/inbox/:actor',
-  outbox: '/outbox/:actor',
-  followers: '/followers/:actor',
-  following: '/following/:actor',
-  liked: '/liked/:actor',
-  shares: '/s/:id/shares',
-  likes: '/s/:id/likes',
-  collections: '/u/:actor/c/:id',
-  blocked: '/u/:actor/blocked',
-  rejections: '/u/:actor/rejections',
-  rejected: '/u/:actor/rejected',
-  nodeinfo: '/nodeinfo',
-};
+import {
+  AP_ROUTES,
+  AP_USER_ID_PREFIX,
+  AP_USER_INBOX_PREFIX,
+  AP_USER_OUTBOX_PREFIX,
+  AP_USER_FOLLOWERS_PREFIX,
+  AP_USER_FOLLOWING_PREFIX,
+  AP_USER_LIKED_PREFIX,
+} from './utils/constants.js';
 
 export function buildApex(nymph: Nymph) {
   const store = new ApexStore(nymph);
@@ -41,7 +35,7 @@ export function buildApex(nymph: Nymph) {
     actorParam: 'actor',
     objectParam: 'id',
     activityParam: 'id',
-    routes,
+    routes: AP_ROUTES,
     store,
     endpoints: {
       uploadMedia: 'https://localhost/upload',
@@ -53,9 +47,11 @@ export function buildApex(nymph: Nymph) {
 
 class ApexStore implements IApexStore {
   nymph: Nymph;
+  User: typeof UserClass;
 
   constructor(nymph: Nymph) {
     this.nymph = nymph;
+    this.User = nymph.getEntityClass(UserClass.class) as typeof UserClass;
   }
 
   async setup(_optionalActor: APEXActor) {
@@ -64,14 +60,27 @@ class ApexStore implements IApexStore {
 
   async getObject(id: string, includeMeta: boolean) {
     console.log('getObject', { id, includeMeta });
-    if (id === 'http://127.0.0.1:5173/u/hperrin') {
+    if (id.startsWith(AP_USER_ID_PREFIX)) {
+      const username = id.substring(AP_USER_ID_PREFIX.length);
+      const user = await this.User.factoryUsername(username);
+
+      if (!user) {
+        throw new Error('Not found.');
+      }
+
       return {
         type: 'Person',
-        id: 'http://127.0.0.1:5173/u/hperrin',
-        name: 'Hunter Perrin',
+        id: `${AP_USER_ID_PREFIX}${user.username}`,
+        name: user.name,
+        preferredUsername: user.username,
+        inbox: `${AP_USER_INBOX_PREFIX}${user.username}`,
+        outbox: `${AP_USER_OUTBOX_PREFIX}${user.username}`,
+        followers: `${AP_USER_FOLLOWERS_PREFIX}${user.username}`,
+        following: `${AP_USER_FOLLOWING_PREFIX}${user.username}`,
+        liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
       } as APEXActor;
     }
-    return { id, type: 'Object' };
+    return { id, type: 'Object' } as APEXObject;
   }
 
   async saveObject(object: APEXObject) {
@@ -81,7 +90,12 @@ class ApexStore implements IApexStore {
 
   async getActivity(id: string, includeMeta: boolean) {
     console.log('getActivity', { id, includeMeta });
-    return { id, type: 'Activity', actor: ['someone'], object: {} };
+    return {
+      id,
+      type: 'Activity',
+      actor: ['someone'],
+      object: { type: 'Object' },
+    } as APEXActivity;
   }
 
   async findActivityByCollectionAndObjectId(
@@ -94,7 +108,12 @@ class ApexStore implements IApexStore {
       objectId,
       includeMeta,
     });
-    return { id: 'id', type: 'Activity', actor: ['someone'], object: {} };
+    return {
+      id: 'id',
+      type: 'Activity',
+      actor: ['someone'],
+      object: { type: 'Object' },
+    } as APEXActivity;
   }
 
   async findActivityByCollectionAndActorId(
@@ -107,7 +126,12 @@ class ApexStore implements IApexStore {
       actorId,
       includeMeta,
     });
-    return { id: 'id', type: 'Activity', actor: ['someone'], object: {} };
+    return {
+      id: 'id',
+      type: 'Activity',
+      actor: ['someone'],
+      object: { type: 'Object' },
+    } as APEXActivity;
   }
 
   /**
@@ -132,7 +156,14 @@ class ApexStore implements IApexStore {
       blockList,
       query,
     });
-    return [{ id: 'id', type: 'Activity', actor: ['someone'], object: {} }];
+    return [
+      // {
+      //   id: 'id',
+      //   type: 'Activity',
+      //   actor: ['someone'],
+      //   object: { type: 'Object' },
+      // } as APEXActivity,
+    ];
   }
 
   async getStreamCount(collectionId: string) {
@@ -198,7 +229,7 @@ class ApexStore implements IApexStore {
 
   generateId() {
     console.log('generateId');
-    return '1';
+    return guid();
   }
 
   async updateObject(obj: APEXObject, actorId: string, fullReplace: boolean) {
