@@ -248,6 +248,7 @@ declare module '_activitypub' {
 
   export interface APDislikeActivity extends APActivity {
     type: 'Dislike' | ('Dislike' | string | APanyURI)[];
+    object: APObject | APLink | (APObject | APLink)[];
   }
 
   export interface APQuestionActivity extends APIntransitiveActivity {
