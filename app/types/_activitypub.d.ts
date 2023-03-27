@@ -81,7 +81,7 @@ declare module '_activitypub' {
     duration?: APDuration;
 
     context?: APObject | APLink | (APObject | APLink)[];
-    source?: APObject;
+    source?: { content: string; mediaType: APMIMEMediaType };
     likes?: APCollection | APOrderedCollection | APLink | APanyURI;
     shares?: APCollection | APOrderedCollection | APLink | APanyURI;
   }

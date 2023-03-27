@@ -1,3 +1,4 @@
+import type { Selector } from '@nymphjs/nymph';
 import { Entity, nymphJoiProps } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
@@ -42,6 +43,42 @@ export class SocialCollectionEntry extends Entity<SocialCollectionEntryData> {
     if (!this.$nymph.tilmeld?.gatekeeper()) {
       // Only allow logged in users to save.
       throw new HttpError('You are not logged in.', 401);
+    }
+
+    if (this.$data.collection.guid == null || this.$data.entry.guid == null) {
+      throw new HttpError(
+        'A collection and an entry need to be specified.',
+        400
+      );
+    }
+
+    // Check that this entry doesn't already exist.
+    if (
+      await this.$nymph.getEntity(
+        {
+          class: this.constructor as typeof SocialCollectionEntry,
+        },
+        {
+          type: '&',
+          ref: [
+            ['collection', this.$data.collection.guid],
+            ['entry', this.$data.entry.guid],
+          ],
+        },
+        ...(this.guid
+          ? [
+              {
+                type: '&',
+                '!guid': this.guid,
+              } as Selector,
+            ]
+          : [])
+      )
+    ) {
+      throw new HttpError(
+        'That entry already belongs to that collection.',
+        409
+      );
     }
 
     // Validate the entity's data.

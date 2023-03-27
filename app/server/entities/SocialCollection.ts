@@ -1,4 +1,5 @@
-import { Entity, Selector, nymphJoiProps } from '@nymphjs/nymph';
+import type { Selector } from '@nymphjs/nymph';
+import { Entity, nymphJoiProps } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
@@ -39,7 +40,7 @@ export class SocialCollection extends Entity<SocialCollectionData> {
       throw new HttpError('You are not logged in.', 401);
     }
 
-    // Check that this stream doesn't already exist.
+    // Check that this collection doesn't already exist.
     if (
       await this.$nymph.getEntity(
         {
@@ -59,7 +60,7 @@ export class SocialCollection extends Entity<SocialCollectionData> {
           : [])
       )
     ) {
-      throw new HttpError('That stream already exists.', 409);
+      throw new HttpError('That collection already exists.', 409);
     }
 
     // Validate the entity's data.
