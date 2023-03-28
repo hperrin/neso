@@ -10,7 +10,7 @@
     "sourceMap": true,
     "strict": true,
     /**
-      Specific to Oblag.
+      Specific to Neso.
       */
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": true

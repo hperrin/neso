@@ -1,5 +1,5 @@
 {
-  "name": "oblag",
+  "name": "neso",
   "version": "1.0.0",
   "description": "Federated social network implementing ActivityPub.",
   "type": "module",
@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hperrin/oblag.git"
+    "url": "git+https://github.com/hperrin/neso.git"
   },
   "author": "Hunter Perrin, Nick Antolos",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/hperrin/oblag/issues"
+    "url": "https://github.com/hperrin/neso/issues"
   },
-  "homepage": "https://github.com/hperrin/oblag#readme",
+  "homepage": "https://github.com/hperrin/neso#readme",
   "devDependencies": {
     "@commitlint/cli": "^17.5.0",
     "@commitlint/config-conventional": "^17.4.4",

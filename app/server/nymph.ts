@@ -144,7 +144,7 @@ export function getNymphInstance({
     }
 
     tilmeld = new Tilmeld({
-      appName: 'Oblag',
+      appName: 'Neso',
       appUrl: ADDRESS,
       cookieDomain: DOMAIN,
       cookiePath: '/',

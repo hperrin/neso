@@ -26,7 +26,7 @@ export function buildApex(nymph: Nymph) {
   const store = new ApexStore(nymph);
 
   return ActivitypubExpress({
-    name: 'Oblag',
+    name: 'Neso',
     version: process.env.npm_package_version,
     openRegistrations: false,
     nodeInfoMetadata: {},

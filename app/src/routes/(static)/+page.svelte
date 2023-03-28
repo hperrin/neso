@@ -7,10 +7,10 @@
   </div>
 {:else}
   <div class="intro-container" style="min-width: 320px;">
-    <h1>Oblag</h1>
+    <h1>Neso</h1>
     <p>
-      Join Oblag to gain access to the largest federated social network in the
-      world. Oblag uses ActivityPub to work with Mastodon, PixelFed, Pleroma,
+      Join Neso to gain access to the largest federated social network in the
+      world. Neso uses ActivityPub to work with Mastodon, PixelFed, Pleroma,
       PeerTube, and more! (It's a <a
         href="https://hack.sveltesociety.dev/"
         target="_blank"
@@ -39,7 +39,7 @@
       <section class="big-points-container" style="min-width: 320px;">
         <h2>Fediverse</h2>
         <p>
-          Oblag is part of a huge network of servers that run ActivityPub called
+          Neso is part of a huge network of servers that run ActivityPub called
           the Fediverse. ActivityPub is a protocol that lets users on different
           servers share content and activities with each other. Think of it like
           email, but for social networks.
@@ -47,14 +47,14 @@
 
         <h2>Svelte</h2>
         <p>
-          Oblag is written with two technologies called Svelte and SvelteKit.
-          Svelte provides Oblag with an incredibly fast user experience and
-          SvelteKit provides Oblag with a well optimized server environment.
+          Neso is written with two technologies called Svelte and SvelteKit.
+          Svelte provides Neso with an incredibly fast user experience and
+          SvelteKit provides Neso with a well optimized server environment.
         </p>
 
         <h2>Hackathon</h2>
         <p>
-          To showcase exactly how incredible Svelte and SvelteKit are, Oblag was
+          To showcase exactly how incredible Svelte and SvelteKit are, Neso was
           written by two developers in just one month for the Svelte Hackathon!
         </p>
       </section>

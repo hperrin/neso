@@ -1,4 +1,4 @@
-# Oblag Web App
+# Neso Web App
 
 Federated social network implementing ActivityPub.
 

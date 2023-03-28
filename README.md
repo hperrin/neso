@@ -1,14 +1,12 @@
-# Oblag
+# Neso
 
 Federated social network implementing ActivityPub.
 
 This is a [Svelte Hackathon](https://hack.sveltesociety.dev/) project!
 
-I heard about it on the [Blagoblag](https://xkcd.com/181/).
-
 ## Live Instance
 
-Check it out live at [oblag.com](https://oblag.com/).
+Check it out live at [neso.social](https://neso.social/).
 
 ## Structure
 

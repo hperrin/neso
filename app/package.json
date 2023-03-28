@@ -1,5 +1,5 @@
 {
-  "name": "oblag-app",
+  "name": "neso-app",
   "version": "0.0.1",
   "scripts": {
     "dev": "env JWT_SECRET=\"6002c271-157d-4a52-b8a3-b4cef645fb67\" vite dev",

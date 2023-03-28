@@ -58,7 +58,7 @@
             style="color: unset; display: inline-flex; align-items: center;"
           >
             <Logo style="width: 32px; height: 32px;" />
-            <span style="margin-left: .25em;">Oblag</span>
+            <span style="margin-left: .25em;">Neso</span>
           </Title>
         {/if}
       </Section>
