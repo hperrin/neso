@@ -81,7 +81,7 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
     try {
       Joi.attempt(
         this.$getValidatable(),
-        Joi.object().keys({
+        Joi.object({
           ...nymphJoiProps,
           ...tilmeldJoiProps,
 
@@ -92,6 +92,10 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
       );
     } catch (e: any) {
       throw new HttpError(e.message, 400);
+    }
+
+    if (JSON.stringify(this.$getValidatable()).length > 50 * 1024) {
+      throw new HttpError('This server has a max of 50KiB for actors.', 413);
     }
 
     return await super.$save();

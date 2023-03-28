@@ -3,7 +3,7 @@ import { nymphJoiProps } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
-import type { APLink } from '_activitypub';
+import type { APLink, APObject } from '_activitypub';
 
 import { SocialObjectBase } from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';
@@ -143,7 +143,7 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
     try {
       Joi.attempt(
         this.$getValidatable(),
-        Joi.object().keys({
+        Joi.object({
           ...nymphJoiProps,
           ...tilmeldJoiProps,
 
@@ -154,6 +154,13 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
       );
     } catch (e: any) {
       throw new HttpError(e.message, 400);
+    }
+
+    if (JSON.stringify(this.$getValidatable()).length > 50 * 1024) {
+      throw new HttpError(
+        'This server has a max of 50KiB for activities.',
+        413
+      );
     }
 
     return await super.$save();
@@ -194,7 +201,15 @@ export const socialActivityJoiProps = {
     )
     .required(),
   actor: Joi.object().instance(SocialActor).required(),
-  object: Joi.array().items(socialObjectOrLink),
+  object: Joi.array().items(
+    Joi.object({
+      id: Joi.string().uri(),
+      type: Joi.alternatives().try(
+        Joi.string(),
+        Joi.array().items(Joi.string())
+      ),
+    })
+  ),
   target: Joi.array().items(socialObjectOrLink),
   result: Joi.array().items(socialObjectOrLink),
   origin: Joi.array().items(socialObjectOrLink),
