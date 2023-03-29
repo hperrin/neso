@@ -3,12 +3,29 @@ import { nymphJoiProps } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
+import { APObject } from '_activitypub';
 
-import { SocialCollection } from './SocialCollection.js';
-import { SocialObjectBase } from './SocialObjectBase.js';
+import { SocialObjectBase, apObjectJoiBuilder } from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';
 
-export type SocialObjectData = SocialObjectBaseData;
+export type SocialObjectData = SocialObjectBaseData & {
+  type:
+    | 'Object'
+    | 'Relationship'
+    | 'Article'
+    | 'Article'
+    | 'Document'
+    | 'Audio'
+    | 'Image'
+    | 'Video'
+    | 'Note'
+    | 'Page'
+    | 'Event'
+    | 'Place'
+    | 'Mention'
+    | 'Profile'
+    | 'Tombstone';
+};
 
 export class SocialObject extends SocialObjectBase<SocialObjectData> {
   static ETYPE = 'socialobject';
@@ -27,6 +44,24 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
     return super.factorySync(guid) as SocialObject & SocialObjectData;
   }
 
+  static async factoryId(
+    id?: string
+  ): Promise<SocialObject & SocialObjectData> {
+    const entity = this.factorySync();
+    if (id != null) {
+      const entity = await this.nymph.getEntity(
+        {
+          class: this,
+        },
+        { type: '&', equal: ['id', id] }
+      );
+      if (entity != null) {
+        return entity;
+      }
+    }
+    return entity;
+  }
+
   constructor(guid?: string) {
     super(guid);
 
@@ -34,6 +69,49 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
       this.$data.type = 'Object';
       this.$data.fullType = ['Object'];
     }
+  }
+
+  async $acceptAPObject(obj: APObject, fullReplace: boolean) {
+    super.$acceptAPObject(obj, fullReplace);
+
+    this.$data.type = 'Object';
+    if (Array.isArray(obj.type)) {
+      for (const entry of obj.type) {
+        if (
+          entry === 'Relationship' ||
+          entry === 'Article' ||
+          entry === 'Document' ||
+          entry === 'Audio' ||
+          entry === 'Image' ||
+          entry === 'Video' ||
+          entry === 'Note' ||
+          entry === 'Page' ||
+          entry === 'Event' ||
+          entry === 'Place' ||
+          entry === 'Profile' ||
+          entry === 'Tombstone'
+        ) {
+          this.$data.type = entry;
+          break;
+        }
+      }
+    } else if (
+      obj.type === 'Relationship' ||
+      obj.type === 'Article' ||
+      obj.type === 'Document' ||
+      obj.type === 'Audio' ||
+      obj.type === 'Image' ||
+      obj.type === 'Video' ||
+      obj.type === 'Note' ||
+      obj.type === 'Page' ||
+      obj.type === 'Event' ||
+      obj.type === 'Place' ||
+      obj.type === 'Profile' ||
+      obj.type === 'Tombstone'
+    ) {
+      this.$data.type = obj.type;
+    }
+    this.$data.fullType = obj.type;
   }
 
   async $save() {
@@ -69,7 +147,7 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
     try {
       Joi.attempt(
         this.$getValidatable(),
-        Joi.object({
+        apObjectJoiBuilder({
           ...nymphJoiProps,
           ...tilmeldJoiProps,
 
@@ -89,35 +167,11 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
   }
 }
 
-export const socialLinkJoi = Joi.alternatives().try(
-  Joi.string().uri(),
-  Joi.object().keys({
-    type: Joi.any().valid('Link', 'Mention').required(),
-    fullType: Joi.array().items(Joi.string().max(512).trim(false)).required(),
-    href: Joi.string().uri().required(),
-    rel: Joi.array().items(Joi.string().max(64).trim(false)),
-    mediaType: Joi.array().items(Joi.string().max(96).trim(false)),
-    name: Joi.string().max(240),
-    nameMap: Joi.object().pattern(/.*/, Joi.string().max(240)),
-    hreflang: Joi.string().max(128),
-    height: Joi.number(),
-    width: Joi.number(),
-    preview: Joi.array().items(Joi.object().instance(SocialObject)),
-    attributedTo: Joi.array().items(Joi.object().instance(SocialObject)),
-  })
-);
-
-export const socialObjectOrLink = Joi.alternatives(
-  Joi.object().instance(SocialObject),
-  socialLinkJoi
-);
-
 export const socialObjectJoiProps = {
   type: Joi.any()
     .valid(
       'Object',
       'Relationship',
-      'Article',
       'Article',
       'Document',
       'Audio',
@@ -131,45 +185,17 @@ export const socialObjectJoiProps = {
       'Tombstone'
     )
     .required(),
-  fullType: Joi.array().items(Joi.string().max(512).trim(false)).required(),
-  id: Joi.string().max(2048).trim(false).uri(),
+  fullType: Joi.alternatives()
+    .try(
+      Joi.string().max(512).trim(false),
+      Joi.array().items(Joi.string().max(512).trim(false))
+    )
+    .required(),
 
-  attachment: Joi.array().items(socialObjectOrLink),
-  attributedTo: Joi.array().items(socialObjectOrLink),
-  audience: Joi.array().items(socialObjectOrLink),
-  content: Joi.string().max(5000),
-  contentMap: Joi.object().pattern(/.*/, Joi.string().max(5000)),
-  name: Joi.string().max(240),
-  nameMap: Joi.object().pattern(/.*/, Joi.string().max(240)),
   endTime: Joi.number(),
-  generator: Joi.array().items(socialObjectOrLink),
-  icon: Joi.array().items(socialObjectOrLink),
-  image: Joi.array().items(socialObjectOrLink),
-  inReplyTo: Joi.array().items(socialObjectOrLink),
-  location: Joi.array().items(socialObjectOrLink),
-  preview: Joi.array().items(socialObjectOrLink),
   published: Joi.number(),
-  replies: Joi.object().instance(SocialCollection),
   startTime: Joi.number(),
-  summary: Joi.string().max(2000),
-  summaryMap: Joi.object().pattern(/.*/, Joi.string().max(2000)),
-  tag: Joi.array().items(socialObjectOrLink),
   updated: Joi.number(),
-  url: Joi.array().items(Joi.string().uri()),
-  to: Joi.array().items(socialObjectOrLink),
-  bto: Joi.array().items(socialObjectOrLink),
-  cc: Joi.array().items(socialObjectOrLink),
-  bcc: Joi.array().items(socialObjectOrLink),
-  mediaType: Joi.string().max(64).trim(false),
-  duration: Joi.string().max(64).trim(false),
-
-  context: Joi.array().items(socialObjectOrLink),
-  source: Joi.object().keys({
-    content: Joi.string().max(5000).required(),
-    mediaType: Joi.string().max(64).trim(false).required(),
-  }),
-  likes: Joi.object().instance(SocialCollection),
-  shares: Joi.object().instance(SocialCollection),
 
   _meta: Joi.object(),
 };

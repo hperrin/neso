@@ -26,6 +26,24 @@ export class SocialCollection extends Entity<SocialCollectionData> {
     return super.factorySync(guid) as SocialCollection & SocialCollectionData;
   }
 
+  static async factoryId(
+    id?: string
+  ): Promise<SocialCollection & SocialCollectionData> {
+    const entity = this.factorySync();
+    if (id != null) {
+      const entity = await this.nymph.getEntity(
+        {
+          class: this,
+        },
+        { type: '&', equal: ['id', id] }
+      );
+      if (entity != null) {
+        return entity;
+      }
+    }
+    return entity;
+  }
+
   constructor(guid?: string) {
     super(guid);
 

@@ -28,6 +28,8 @@ declare module '_activitypub' {
   export interface APBase {
     type: string | APanyURI | (string | APanyURI)[];
     id?: APanyURI | null;
+
+    [k: string]: any;
   }
 
   export type APStringLink = string;
@@ -91,26 +93,36 @@ declare module '_activitypub' {
   //
 
   export interface APCollection extends APObject {
+    type: 'Collection' | ('Collection' | string | APanyURI)[];
     totalItems?: number;
     current?: APCollectionPage | APLink;
     first?: APCollectionPage | APLink;
     last?: APCollectionPage | APLink;
-    items: APObject | APLink | (APObject | APLink)[];
+    items?: APObject | APLink | (APObject | APLink)[];
   }
 
-  export interface APOrderedCollection extends APCollection {
+  export interface APOrderedCollection extends Omit<APCollection, 'type'> {
+    type: 'OrderedCollection' | ('OrderedCollection' | string | APanyURI)[];
     items: never;
-    orderedItems: APObject | APLink | (APObject | APLink)[];
+    orderedItems?: APObject | APLink | (APObject | APLink)[];
   }
 
-  export interface APCollectionPage extends APCollection {
+  export interface APCollectionPage extends Omit<APCollection, 'type'> {
+    type: 'CollectionPage' | ('CollectionPage' | string | APanyURI)[];
     partOf?: APCollection | APLink;
     next?: APCollectionPage | APLink;
     prev?: APCollectionPage | APLink;
+    items: APObject | APLink | (APObject | APLink)[];
   }
 
-  export interface APOrderedCollectionPage extends APCollectionPage {
+  export interface APOrderedCollectionPage
+    extends Omit<APCollectionPage, 'type'> {
+    type:
+      | 'OrderedCollectionPage'
+      | ('OrderedCollectionPage' | string | APanyURI)[];
     startIndex?: number;
+    items: never;
+    orderedItems: APObject | APLink | (APObject | APLink)[];
   }
 
   //
@@ -118,7 +130,7 @@ declare module '_activitypub' {
   //
 
   export interface APActivity extends APObject {
-    actor: APActor | APanyURI | (APActor | APanyURI)[] | string[];
+    actor: APObject | APLink | (APObject | APLink)[];
     object?: APObject | APLink | (APObject | APLink)[];
     target?: APObject | APLink | (APObject | APLink)[];
     result?: APObject | APLink | (APObject | APLink)[];
@@ -313,10 +325,6 @@ declare module '_activitypub' {
     subject: APObject | APLink;
     object: APObject | APLink | (APObject | APLink)[];
     relationship: APObject | APanyURI | (APObject | APanyURI)[];
-  }
-
-  export interface APArticleObject extends APObject {
-    type: 'Article' | ('Article' | string | APanyURI)[];
   }
 
   export interface APArticleObject extends APObject {

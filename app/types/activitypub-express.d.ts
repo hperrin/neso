@@ -31,6 +31,7 @@ declare module 'activitypub-express' {
   }
 
   export interface APEXActivity extends APActivity {
+    id: string;
     actor: string[];
   }
 

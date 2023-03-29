@@ -12,6 +12,17 @@ import type {
 } from 'activitypub-express';
 import ActivitypubExpress from 'activitypub-express';
 
+import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
+import type { SocialActivityData } from './entities/SocialActivity.js';
+import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
+import type { SocialActorData } from './entities/SocialActor.js';
+import { SocialCollection as SocialCollectionClass } from './entities/SocialCollection.js';
+import type { SocialCollectionData } from './entities/SocialCollection.js';
+import { SocialCollectionEntry as SocialCollectionEntryClass } from './entities/SocialCollectionEntry.js';
+import type { SocialCollectionEntryData } from './entities/SocialCollectionEntry.js';
+import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
+import type { SocialObjectData } from './entities/SocialObject.js';
+
 import {
   AP_ROUTES,
   AP_USER_ID_PREFIX,
@@ -48,10 +59,30 @@ export function buildApex(nymph: Nymph) {
 class ApexStore implements IApexStore {
   nymph: Nymph;
   User: typeof UserClass;
+  SocialActivity: typeof SocialActivityClass;
+  SocialActor: typeof SocialActorClass;
+  SocialCollection: typeof SocialCollectionClass;
+  SocialCollectionEntry: typeof SocialCollectionEntryClass;
+  SocialObject: typeof SocialObjectClass;
 
   constructor(nymph: Nymph) {
     this.nymph = nymph;
     this.User = nymph.getEntityClass(UserClass.class) as typeof UserClass;
+    this.SocialActivity = nymph.getEntityClass(
+      SocialActivityClass.class
+    ) as typeof SocialActivityClass;
+    this.SocialActor = nymph.getEntityClass(
+      SocialActorClass.class
+    ) as typeof SocialActorClass;
+    this.SocialCollection = nymph.getEntityClass(
+      SocialCollectionClass.class
+    ) as typeof SocialCollectionClass;
+    this.SocialCollectionEntry = nymph.getEntityClass(
+      SocialCollectionEntryClass.class
+    ) as typeof SocialCollectionEntryClass;
+    this.SocialObject = nymph.getEntityClass(
+      SocialObjectClass.class
+    ) as typeof SocialObjectClass;
   }
 
   async setup(_optionalActor: APEXActor) {
@@ -80,7 +111,20 @@ class ApexStore implements IApexStore {
         liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
       } as APEXActor;
     }
-    return { id, type: 'Object' } as APEXObject;
+
+    // Look for an actor.
+    const actor = await this.SocialActor.factoryId(id);
+    if (actor != null) {
+      return (await actor.$toAPObject(includeMeta)) as APEXActor;
+    }
+
+    // Look for an object.
+    const object = await this.SocialObject.factoryId(id);
+    if (object != null) {
+      return (await object.$toAPObject(includeMeta)) as APEXObject;
+    }
+
+    throw new Error('Not found.');
   }
 
   async saveObject(object: APEXObject) {
@@ -90,12 +134,14 @@ class ApexStore implements IApexStore {
 
   async getActivity(id: string, includeMeta: boolean) {
     console.log('getActivity', { id, includeMeta });
-    return {
-      id,
-      type: 'Activity',
-      actor: ['someone'],
-      object: { type: 'Object' },
-    } as APEXActivity;
+
+    // Look for an activity.
+    const activity = await this.SocialActivity.factoryId(id);
+    if (activity != null) {
+      return (await activity.$toAPObject(includeMeta)) as APEXActivity;
+    }
+
+    throw new Error('Not found.');
   }
 
   async findActivityByCollectionAndObjectId(
