@@ -25,6 +25,18 @@ import { Settings as SettingsClass } from './entities/Settings.js';
 import type { SettingsData } from './entities/Settings.js';
 import { Todo as TodoClass } from './entities/Todo.js';
 import type { TodoData } from './entities/Todo.js';
+import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
+import type { SocialActivityData } from './entities/SocialActivity.js';
+import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
+import type { SocialActorData } from './entities/SocialActor.js';
+import { SocialCollection as SocialCollectionClass } from './entities/SocialCollection.js';
+import type { SocialCollectionData } from './entities/SocialCollection.js';
+import { SocialCollectionEntry as SocialCollectionEntryClass } from './entities/SocialCollectionEntry.js';
+import type { SocialCollectionEntryData } from './entities/SocialCollectionEntry.js';
+import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
+import type { SocialObjectData } from './entities/SocialObject.js';
+import { SocialObjectBase as SocialObjectBaseClass } from './entities/SocialObjectBase.js';
+import type { SocialObjectBaseData } from './entities/SocialObjectBase.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -51,6 +63,18 @@ export type {
   SettingsData,
   TodoClass,
   TodoData,
+  SocialActivityClass,
+  SocialActivityData,
+  SocialActorClass,
+  SocialActorData,
+  SocialCollectionClass,
+  SocialCollectionData,
+  SocialCollectionEntryClass,
+  SocialCollectionEntryData,
+  SocialObjectClass,
+  SocialObjectData,
+  SocialObjectBaseClass,
+  SocialObjectBaseData,
 };
 
 export type NymphInstance = {
@@ -61,6 +85,12 @@ export type NymphInstance = {
   Project: typeof ProjectClass;
   Settings: typeof SettingsClass;
   Todo: typeof TodoClass;
+  SocialActivity: typeof SocialActivityClass;
+  SocialActor: typeof SocialActorClass;
+  SocialCollection: typeof SocialCollectionClass;
+  SocialCollectionEntry: typeof SocialCollectionEntryClass;
+  SocialObject: typeof SocialObjectClass;
+  SocialObjectBase: typeof SocialObjectBaseClass;
   restMiddleware: Express;
   tilmeldSetupMiddleware: Express;
   corsMiddleware: Express;
@@ -111,6 +141,12 @@ export function getNymphInstance({
   let Project = ProjectClass;
   let Settings = SettingsClass;
   let Todo = TodoClass;
+  let SocialActivity = SocialActivityClass;
+  let SocialActor = SocialActorClass;
+  let SocialCollection = SocialCollectionClass;
+  let SocialCollectionEntry = SocialCollectionEntryClass;
+  let SocialObject = SocialObjectClass;
+  let SocialObjectBase = SocialObjectBaseClass;
   let restMiddleware: Express = express();
   let tilmeldSetupMiddleware: Express = express();
   let corsMiddleware = cors(corsOptions) as unknown as Express;
@@ -169,6 +205,12 @@ export function getNymphInstance({
     Project = nymph.addEntityClass(ProjectClass);
     Settings = nymph.addEntityClass(SettingsClass);
     Todo = nymph.addEntityClass(TodoClass);
+    SocialActivity = nymph.addEntityClass(SocialActivityClass);
+    SocialActor = nymph.addEntityClass(SocialActorClass);
+    SocialCollection = nymph.addEntityClass(SocialCollectionClass);
+    SocialCollectionEntry = nymph.addEntityClass(SocialCollectionEntryClass);
+    SocialObject = nymph.addEntityClass(SocialObjectClass);
+    SocialObjectBase = nymph.addEntityClass(SocialObjectBaseClass);
 
     User = tilmeld.User;
     Group = tilmeld.Group;
@@ -196,6 +238,12 @@ export function getNymphInstance({
     Project,
     Settings,
     Todo,
+    SocialActivity,
+    SocialActor,
+    SocialCollection,
+    SocialCollectionEntry,
+    SocialObject,
+    SocialObjectBase,
     restMiddleware,
     tilmeldSetupMiddleware,
     corsMiddleware,

@@ -20,12 +20,12 @@
   },
   "homepage": "https://github.com/hperrin/neso#readme",
   "devDependencies": {
-    "@commitlint/cli": "^17.5.0",
+    "@commitlint/cli": "^17.5.1",
     "@commitlint/config-conventional": "^17.4.4",
     "@tsconfig/recommended": "^1.0.2",
     "husky": "^8.0.3",
-    "lint-staged": "^13.2.0",
-    "prettier": "2.8.6",
+    "lint-staged": "^13.2.1",
+    "prettier": "2.8.7",
     "prettier-plugin-svelte": "^2.10.0"
   },
   "lint-staged": {
