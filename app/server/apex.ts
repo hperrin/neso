@@ -32,6 +32,7 @@ import {
   AP_USER_FOLLOWING_PREFIX,
   AP_USER_LIKED_PREFIX,
 } from './utils/constants.js';
+import { isActivity, isActor, isObject } from './utils/checkTypes.js';
 
 export function buildApex(nymph: Nymph) {
   const store = new ApexStore(nymph);
@@ -86,11 +87,12 @@ class ApexStore implements IApexStore {
   }
 
   async setup(_optionalActor: APEXActor) {
+    // TODO
     console.log('setup');
   }
 
   async getObject(id: string, includeMeta: boolean) {
-    console.log('getObject', { id, includeMeta });
+    // console.log('getObject', { id, includeMeta });
     if (id.startsWith(AP_USER_ID_PREFIX)) {
       const username = id.substring(AP_USER_ID_PREFIX.length);
       const user = await this.User.factoryUsername(username);
@@ -128,12 +130,34 @@ class ApexStore implements IApexStore {
   }
 
   async saveObject(object: APEXObject) {
-    console.log('saveObject', object);
-    return true;
+    // console.log('saveObject', object);
+
+    if (isActivity(object)) {
+      const obj = await this.SocialActivity.factory();
+      await obj.$acceptAPObject(object, true);
+
+      return await obj.$save();
+    }
+
+    if (isActor(object)) {
+      const obj = await this.SocialActor.factory();
+      await obj.$acceptAPObject(object, true);
+
+      return await obj.$save();
+    }
+
+    if (isObject(object)) {
+      const obj = await this.SocialObject.factory();
+      await obj.$acceptAPObject(object, true);
+
+      return await obj.$save();
+    }
+
+    throw new Error('Unsupported object type.');
   }
 
   async getActivity(id: string, includeMeta: boolean) {
-    console.log('getActivity', { id, includeMeta });
+    // console.log('getActivity', { id, includeMeta });
 
     // Look for an activity.
     const activity = await this.SocialActivity.factoryId(id);
@@ -149,6 +173,7 @@ class ApexStore implements IApexStore {
     objectId: string,
     includeMeta: boolean
   ) {
+    // TODO
     console.log('findActivityByCollectionAndObjectId', {
       collection,
       objectId,
@@ -167,6 +192,7 @@ class ApexStore implements IApexStore {
     actorId: string,
     includeMeta: boolean
   ) {
+    // TODO
     console.log('findActivityByCollectionAndActorId', {
       collection,
       actorId,
@@ -195,6 +221,7 @@ class ApexStore implements IApexStore {
     blockList?: string[],
     query?: any
   ) {
+    // TODO
     console.log('getStream', {
       collectionId,
       limit,
@@ -213,21 +240,25 @@ class ApexStore implements IApexStore {
   }
 
   async getStreamCount(collectionId: string) {
+    // TODO
     console.log('getStreamCount', { collectionId });
     return 1;
   }
 
   async getContext(documentUrl: string) {
+    // TODO
     console.log('getContext', { documentUrl });
     return { contextUrl: '', documentUrl: '', document: {} };
   }
 
   async getUsercount() {
+    // TODO
     console.log('getUsercount');
     return 1;
   }
 
   async saveContext(context: Context) {
+    // TODO
     console.log('saveContext', context);
     return;
   }
@@ -237,6 +268,7 @@ class ApexStore implements IApexStore {
    * Return undefined if it has already been saved (the ID exists).
    */
   async saveActivity(activity: APEXActivity | APEXIntransitiveActivity) {
+    // TODO
     console.log('saveActivity', activity);
     return true;
   }
@@ -245,6 +277,7 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     actorId: string
   ) {
+    // TODO
     console.log('removeActivity', activity, { actorId });
     return [];
   }
@@ -256,6 +289,7 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     fullReplace: boolean
   ) {
+    // TODO
     console.log('updateActivity', activity, { fullReplace });
     return activity;
   }
@@ -269,16 +303,18 @@ class ApexStore implements IApexStore {
     value: any,
     remove: boolean
   ) {
+    // TODO
     console.log('updateActivityMeta', activity, { key, value, remove });
     return activity;
   }
 
   generateId() {
-    console.log('generateId');
+    // console.log('generateId');
     return guid();
   }
 
   async updateObject(obj: APEXObject, actorId: string, fullReplace: boolean) {
+    // TODO
     console.log('updateObject', obj, {
       actorId,
       fullReplace,
@@ -296,6 +332,7 @@ class ApexStore implements IApexStore {
    * If no deliveries exist, return null.
    */
   async deliveryDequeue() {
+    // TODO
     console.log('deliveryDequeue');
     return null;
   }
@@ -306,6 +343,7 @@ class ApexStore implements IApexStore {
     addresses: string | string[],
     signingKey: string
   ) {
+    // TODO
     console.log('deliveryEnqueue', {
       actorId,
       body,
@@ -319,6 +357,7 @@ class ApexStore implements IApexStore {
    * Insert the delivery back into the DB after updating its `after` prop.
    */
   async deliveryRequeue(delivery: Delivery) {
+    // TODO
     console.log('deliveryRequeue', delivery);
   }
 }
