@@ -12,14 +12,72 @@ $background: #fff;
   $error: color-palette.$deep-orange-500
 );
 
-$color: if(theme.contrast-tone($background) == 'dark', #000, #fff);
+// Increase border radii.
+@use '@material/shape/index' as shape with (
+  $small-component-radius: 8px,
+  $medium-component-radius: 15px,
+  $large-component-radius: 20px
+);
+
+// Use custom fonts.
+@use '@material/typography' with (
+  $font-family: unquote('Verdana, Geneva, sans-serif'),
+  $styles-headline1: (
+    font-family: unquote('"Palatino Linotype", "Book Antiqua", Palatino, serif'),
+    letter-spacing: 0,
+  ),
+  $styles-headline2: (
+    font-family: unquote('"Palatino Linotype", "Book Antiqua", Palatino, serif'),
+    letter-spacing: 0,
+  ),
+  $styles-headline3: (
+    font-family: unquote('"Palatino Linotype", "Book Antiqua", Palatino, serif'),
+    letter-spacing: 0,
+  ),
+  $styles-headline4: (
+    font-family: unquote('"Palatino Linotype", "Book Antiqua", Palatino, serif'),
+    letter-spacing: 0,
+  ),
+  $styles-headline5: (
+    letter-spacing: 0,
+  ),
+  $styles-headline6: (
+    letter-spacing: 0,
+  ),
+  $styles-subtitle1: (
+    letter-spacing: 0,
+  ),
+  $styles-subtitle2: (
+    letter-spacing: 0,
+  ),
+  $styles-body1: (
+    letter-spacing: 0,
+  ),
+  $styles-body2: (
+    letter-spacing: 0,
+  ),
+  $styles-caption: (
+    letter-spacing: 0,
+  ),
+  $styles-button: (
+    letter-spacing: 0,
+  ),
+  $styles-overline: (
+    letter-spacing: 0,
+  )
+);
 
 @use './site';
 
 html,
 body {
-  background-color: $background;
-  color: $color;
+  background-color: theme.$background;
+  color: theme.$on-surface;
+}
+
+code,
+pre {
+  font-family: 'Courier New', Courier, monospace;
 }
 
 a {

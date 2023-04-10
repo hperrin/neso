@@ -16,8 +16,8 @@
 }
 
 html {
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
   position: fixed;
 }
 
@@ -38,6 +38,7 @@ body,
 .app-main-content {
   overflow: auto;
   height: 100%;
+  border-radius: 0 !important;
 }
 
 .app-drawer.app-drawer-adjust {
@@ -121,11 +122,6 @@ h6 {
 
 caption {
   @include typography.typography('caption');
-}
-
-code,
-pre {
-  font-family: 'Roboto Mono', monospace;
 }
 
 small {
