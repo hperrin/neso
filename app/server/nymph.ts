@@ -25,6 +25,12 @@ import { Settings as SettingsClass } from './entities/Settings.js';
 import type { SettingsData } from './entities/Settings.js';
 import { Todo as TodoClass } from './entities/Todo.js';
 import type { TodoData } from './entities/Todo.js';
+import { AuthClient as AuthClientClass } from './entities/AuthClient.js';
+import type { AuthClientData } from './entities/AuthClient.js';
+import { AuthCode as AuthCodeClass } from './entities/AuthCode.js';
+import type { AuthCodeData } from './entities/AuthCode.js';
+import { AuthToken as AuthTokenClass } from './entities/AuthToken.js';
+import type { AuthTokenData } from './entities/AuthToken.js';
 import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
 import type { SocialActivityData } from './entities/SocialActivity.js';
 import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
@@ -63,6 +69,12 @@ export type {
   SettingsData,
   TodoClass,
   TodoData,
+  AuthClientClass,
+  AuthClientData,
+  AuthCodeClass,
+  AuthCodeData,
+  AuthTokenClass,
+  AuthTokenData,
   SocialActivityClass,
   SocialActivityData,
   SocialActorClass,
@@ -85,6 +97,9 @@ export type NymphInstance = {
   Project: typeof ProjectClass;
   Settings: typeof SettingsClass;
   Todo: typeof TodoClass;
+  AuthClient: typeof AuthClientClass;
+  AuthCode: typeof AuthCodeClass;
+  AuthToken: typeof AuthTokenClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
   SocialCollection: typeof SocialCollectionClass;
@@ -141,6 +156,9 @@ export function getNymphInstance({
   let Project = ProjectClass;
   let Settings = SettingsClass;
   let Todo = TodoClass;
+  let AuthClient = AuthClientClass;
+  let AuthCode = AuthCodeClass;
+  let AuthToken = AuthTokenClass;
   let SocialActivity = SocialActivityClass;
   let SocialActor = SocialActorClass;
   let SocialCollection = SocialCollectionClass;
@@ -205,6 +223,9 @@ export function getNymphInstance({
     Project = nymph.addEntityClass(ProjectClass);
     Settings = nymph.addEntityClass(SettingsClass);
     Todo = nymph.addEntityClass(TodoClass);
+    AuthClient = nymph.addEntityClass(AuthClientClass);
+    AuthCode = nymph.addEntityClass(AuthCodeClass);
+    AuthToken = nymph.addEntityClass(AuthTokenClass);
     SocialActivity = nymph.addEntityClass(SocialActivityClass);
     SocialActor = nymph.addEntityClass(SocialActorClass);
     SocialCollection = nymph.addEntityClass(SocialCollectionClass);
@@ -238,6 +259,9 @@ export function getNymphInstance({
     Project,
     Settings,
     Todo,
+    AuthClient,
+    AuthCode,
+    AuthToken,
     SocialActivity,
     SocialActor,
     SocialCollection,

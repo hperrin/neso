@@ -9,18 +9,10 @@ import {
   WSADDRESS,
   WSPORT,
   apexMiddleware,
+  oauthMiddleware,
 } from './middleware.js';
 
 const { default: createServer } = nymphjsPubsub;
-
-const apexApp = () => {
-  return {
-    name: 'apex-middleware',
-    configureServer(server) {
-      server.middlewares.use(apexMiddleware);
-    },
-  };
-};
 
 const nymphApp = () => {
   let pubSubServer = null;
@@ -48,9 +40,27 @@ const nymphApp = () => {
   };
 };
 
+const oauthApp = () => {
+  return {
+    name: 'oauth-middleware',
+    configureServer(server) {
+      server.middlewares.use(oauthMiddleware);
+    },
+  };
+};
+
+const apexApp = () => {
+  return {
+    name: 'apex-middleware',
+    configureServer(server) {
+      server.middlewares.use(apexMiddleware);
+    },
+  };
+};
+
 /** @type {import('vite').UserConfig} */
 const config = {
-  plugins: [apexApp(), nymphApp(), sveltekit()],
+  plugins: [nymphApp(), oauthApp(), apexApp(), sveltekit()],
 };
 
 export default config;
