@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
@@ -21,6 +22,10 @@ import { buildApex } from './build/nymph/apex.js';
 import { AP_ROUTES, AP_USER_ID_PREFIX } from './build/nymph/utils/constants.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(
+  await fs.readFile(path.resolve(__dirname, '..', 'package.json'))
+);
+
 const {
   nymph,
   tilmeld,
@@ -545,8 +550,6 @@ oauthMiddleware.use(
 );
 
 oauthMiddleware.post('/api/v1/apps', async (req, res) => {
-  console.log(req.body);
-
   if (req.body.client_name == null || req.body.redirect_uris == null) {
     res.status(400);
     res.send('Bad request.');
@@ -620,6 +623,89 @@ oauthMiddleware.get('/api/v1/apps/verify_credentials', async (req, res) => {
     res.status(401);
     res.send('Access token is not valid.');
   }
+});
+
+oauthMiddleware.get('/api/v1/instance', async (req, res) => {
+  const userCount = await nymph.getEntities({
+    class: User,
+    skipAc: true,
+    return: 'count',
+  });
+
+  res.status(200);
+  res.header('Content-Type', 'application/json');
+  res.send(
+    JSON.stringify({
+      uri: pkg.instanceInfo.uri,
+      title: pkg.instanceInfo.title,
+      short_description: pkg.instanceInfo.short_description,
+      description: pkg.instanceInfo.description,
+      email: pkg.instanceInfo.email,
+      thumbnail: pkg.instanceInfo.thumbnail,
+      rules: pkg.instanceInfo.rules,
+      version: pkg.version,
+      stats: {
+        user_count: userCount,
+      },
+      languages: ['en'],
+      registrations: true,
+      approval_required: false,
+      invites_enabled: false,
+      configuration: {
+        accounts: {
+          max_featured_tags: 10,
+        },
+        statuses: {
+          max_characters: 500,
+          max_media_attachments: 4,
+          characters_reserved_per_url: 23,
+        },
+        media_attachments: {
+          supported_mime_types: [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/heic',
+            'image/heif',
+            'image/webp',
+            'image/avif',
+            'video/webm',
+            'video/mp4',
+            'video/quicktime',
+            'video/ogg',
+            'audio/wave',
+            'audio/wav',
+            'audio/x-wav',
+            'audio/x-pn-wave',
+            'audio/vnd.wave',
+            'audio/ogg',
+            'audio/vorbis',
+            'audio/mpeg',
+            'audio/mp3',
+            'audio/webm',
+            'audio/flac',
+            'audio/aac',
+            'audio/m4a',
+            'audio/x-m4a',
+            'audio/mp4',
+            'audio/3gpp',
+            'video/x-ms-asf',
+          ],
+          image_size_limit: 10485760,
+          image_matrix_limit: 16777216,
+          video_size_limit: 41943040,
+          video_frame_rate_limit: 60,
+          video_matrix_limit: 2304000,
+        },
+        polls: {
+          max_options: 4,
+          max_characters_per_option: 50,
+          min_expiration: 300,
+          max_expiration: 2629746,
+        },
+      },
+    })
+  );
 });
 
 export {

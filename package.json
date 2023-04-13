@@ -41,5 +41,47 @@
     "commander": "^10.0.0",
     "dotenv": "^16.0.3",
     "ts-node": "^10.9.1"
+  },
+  "instanceInfo": {
+    "uri": "neso.social",
+    "title": "Neso",
+    "short_description": "Federated social network implementing ActivityPub.",
+    "description": "Federated social network implementing ActivityPub.",
+    "email": "support@sciactive.com",
+    "thumbnail": "https://files.port87.social/site_uploads/files/000/000/003/@1x/906c613c7e04dc14.png",
+    "rules": [
+      {
+        "id": "1",
+        "text": "No hate speech. This include slurs and hateful tropes about marginalized groups."
+      },
+      {
+        "id": "2",
+        "text": "You must be 16 or older to access this server. This is not a place for kids."
+      },
+      {
+        "id": "3",
+        "text": "Do not harass other users. Disagreements and spirited or even heated discussion is fine, but brigading, doxxing, threatening, or engaging in other harassing behavior is not."
+      },
+      {
+        "id": "4",
+        "text": "Do not post illegal content. (Anything that would be considered illegal under the laws of the USA.)"
+      },
+      {
+        "id": "5",
+        "text": "Do not post photographs or artwork depicting minors in a sexually suggestive nature."
+      },
+      {
+        "id": "6",
+        "text": "If you want to host a bot on this server, it must be approved by either @hperrin or @dave first."
+      },
+      {
+        "id": "7",
+        "text": "Pornography and excessive gore are allowed if and only if you mark the media as sensitive."
+      },
+      {
+        "id": "8",
+        "text": "Do not threaten anyone with violence. This includes other users, non-users, public officials, and celebrities."
+      }
+    ]
   }
 }
