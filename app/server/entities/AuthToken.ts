@@ -4,8 +4,8 @@ import type { AccessControlData } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
 
-import { AuthClient } from './AuthClient';
-import type { AuthClientData } from './AuthClient';
+import { AuthClient } from './AuthClient.js';
+import type { AuthClientData } from './AuthClient.js';
 
 export type AuthTokenData = {
   accessToken?: string;

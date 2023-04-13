@@ -15,6 +15,7 @@ import {
   tilmeldSetupMiddleware,
   corsMiddleware,
   apexMiddleware,
+  oauthMiddleware,
 } from './middleware.js';
 
 console.log('Loading server...');
@@ -40,6 +41,7 @@ if (process.env.CERT) {
 app.use('/rest', corsMiddleware);
 app.use('/rest', restMiddleware);
 app.use('/user', tilmeldSetupMiddleware);
+app.use(oauthMiddleware);
 app.use(apexMiddleware);
 
 app.use(handler);

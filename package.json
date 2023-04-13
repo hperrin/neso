@@ -7,6 +7,12 @@
     "format": "prettier --write .",
     "lint": "prettier --check .",
     "prepare": "husky install && npm run lint",
+    "devserver:push": "rsync -azP --delete ./ neso.social:neso",
+    "devserver:pull": "rsync -azP --delete neso.social:neso/ .",
+    "devserver:pull:db": "npm run devserver:pull:db:file && npm run devserver:pull:db:shm && npm run devserver:pull:db:wal",
+    "devserver:pull:db:file": "rsync -azP neso.social:neso/development.db ./development.db || true",
+    "devserver:pull:db:shm": "rsync -azP neso.social:neso/development.db-shm ./development.db-shm || true",
+    "devserver:pull:db:wal": "rsync -azP neso.social:neso/development.db-wal ./development.db-wal || true",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
