@@ -8,8 +8,7 @@ import {
   corsMiddleware,
   WSADDRESS,
   WSPORT,
-  apexMiddleware,
-  oauthMiddleware,
+  nesoMiddleware,
 } from './middleware.js';
 
 const { default: createServer } = nymphjsPubsub;
@@ -40,27 +39,18 @@ const nymphApp = () => {
   };
 };
 
-const oauthApp = () => {
+const nesoApp = () => {
   return {
-    name: 'oauth-middleware',
+    name: 'neso-middleware',
     configureServer(server) {
-      server.middlewares.use(oauthMiddleware);
-    },
-  };
-};
-
-const apexApp = () => {
-  return {
-    name: 'apex-middleware',
-    configureServer(server) {
-      server.middlewares.use(apexMiddleware);
+      server.middlewares.use(nesoMiddleware);
     },
   };
 };
 
 /** @type {import('vite').UserConfig} */
 const config = {
-  plugins: [nymphApp(), oauthApp(), apexApp(), sveltekit()],
+  plugins: [nymphApp(), nesoApp(), sveltekit()],
 };
 
 export default config;

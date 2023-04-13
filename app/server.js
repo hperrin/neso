@@ -14,8 +14,7 @@ import {
   restMiddleware,
   tilmeldSetupMiddleware,
   corsMiddleware,
-  apexMiddleware,
-  oauthMiddleware,
+  nesoMiddleware,
 } from './middleware.js';
 
 console.log('Loading server...');
@@ -41,8 +40,7 @@ if (process.env.CERT) {
 app.use('/rest', corsMiddleware);
 app.use('/rest', restMiddleware);
 app.use('/user', tilmeldSetupMiddleware);
-app.use(oauthMiddleware);
-app.use(apexMiddleware);
+app.use(nesoMiddleware);
 
 app.use(handler);
 

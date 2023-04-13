@@ -130,6 +130,14 @@ export class AuthToken extends Entity<AuthTokenData> {
     return await this.$save();
   }
 
+  public $tilmeldSaveSkipAC() {
+    if (this.$skipAcWhenSaving) {
+      this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
+  }
+
   /*
    * This should *never* be accessible on the client.
    */

@@ -74,45 +74,49 @@ const apexRunner = (middlewares) => {
   };
 };
 
-const apexMiddleware = express();
-apexMiddleware.use(
+const nesoMiddleware = express();
+
+nesoMiddleware.use(
   cookieParser(),
   express.json({ type: apex.consts.jsonldTypes }),
   express.urlencoded({ extended: true }),
+  multer().none(),
   apex
 );
 
-apexMiddleware
+nesoMiddleware
   .route(AP_ROUTES.inbox)
   .get(apexRunner(apex.net.inbox.get))
   .post(apexRunner(apex.net.inbox.post));
-apexMiddleware
+nesoMiddleware
   .route(AP_ROUTES.outbox)
   .get(apexRunner(apex.net.outbox.get))
   .post(apexRunner(apex.net.outbox.post));
-apexMiddleware.get(AP_ROUTES.actor, apexRunner(apex.net.actor.get));
-apexMiddleware.get(AP_ROUTES.followers, apexRunner(apex.net.followers.get));
-apexMiddleware.get(AP_ROUTES.following, apexRunner(apex.net.following.get));
-apexMiddleware.get(AP_ROUTES.liked, apexRunner(apex.net.liked.get));
-apexMiddleware.get(AP_ROUTES.object, apexRunner(apex.net.object.get));
-apexMiddleware.get(AP_ROUTES.activity, apexRunner(apex.net.activityStream.get));
-apexMiddleware.get(AP_ROUTES.shares, apexRunner(apex.net.shares.get));
-apexMiddleware.get(AP_ROUTES.likes, apexRunner(apex.net.likes.get));
-apexMiddleware.get(
+nesoMiddleware.get(AP_ROUTES.actor, apexRunner(apex.net.actor.get));
+nesoMiddleware.get(AP_ROUTES.followers, apexRunner(apex.net.followers.get));
+nesoMiddleware.get(AP_ROUTES.following, apexRunner(apex.net.following.get));
+nesoMiddleware.get(AP_ROUTES.liked, apexRunner(apex.net.liked.get));
+nesoMiddleware.get(AP_ROUTES.object, apexRunner(apex.net.object.get));
+nesoMiddleware.get(AP_ROUTES.activity, apexRunner(apex.net.activityStream.get));
+nesoMiddleware.get(AP_ROUTES.shares, apexRunner(apex.net.shares.get));
+nesoMiddleware.get(AP_ROUTES.likes, apexRunner(apex.net.likes.get));
+nesoMiddleware.get(
   '/.well-known/webfinger',
   apexRunner(apex.net.webfinger.get)
 );
-apexMiddleware.get(
+nesoMiddleware.get(
   '/.well-known/nodeinfo',
   apexRunner(apex.net.nodeInfoLocation.get)
 );
-apexMiddleware.get('/nodeinfo/:version', apexRunner(apex.net.nodeInfo.get));
-apexMiddleware.post('/proxy', apexRunner(apex.net.proxy.post));
+nesoMiddleware.get('/nodeinfo/:version', apexRunner(apex.net.nodeInfo.get));
+nesoMiddleware.post('/proxy', apexRunner(apex.net.proxy.post));
 
 // list of valid scopes
 const VALID_SCOPES = ['read', 'write', 'follow'];
 
 const oauth = new OAuth2Server({
+  allowEmptyState: true,
+
   // See: https://oauth2-server.readthedocs.io/en/latest/model/spec.html
   model: {
     // These functions are optional.
@@ -131,6 +135,7 @@ const oauth = new OAuth2Server({
     // },
 
     getAccessToken: async (accessToken) => {
+      console.log('getAccessToken', { accessToken });
       return await nymph.getEntity(
         { class: AuthToken, skipAc: true },
         {
@@ -141,6 +146,7 @@ const oauth = new OAuth2Server({
     },
 
     getRefreshToken: async (refreshToken) => {
+      console.log('getRefreshToken', { refreshToken });
       return await nymph.getEntity(
         { class: AuthToken, skipAc: true },
         {
@@ -151,6 +157,7 @@ const oauth = new OAuth2Server({
     },
 
     getAuthorizationCode: async (authorizationCode) => {
+      console.log('getAuthorizationCode', { authorizationCode });
       return await nymph.getEntity(
         { class: AuthCode, skipAc: true },
         {
@@ -162,6 +169,7 @@ const oauth = new OAuth2Server({
     },
 
     getClient: async (clientId, clientSecret) => {
+      console.log('getClient', { clientId, clientSecret });
       return await nymph.getEntity(
         { class: AuthClient, skipAc: true },
         {
@@ -175,6 +183,7 @@ const oauth = new OAuth2Server({
     },
 
     getUser: async (username, password) => {
+      console.log('getUser', { username, password });
       const user = await User.factoryUsername(username);
 
       if (user.guid == null) {
@@ -189,6 +198,7 @@ const oauth = new OAuth2Server({
     },
 
     saveToken: async (token, client, user) => {
+      console.log('saveToken', { token, client, user });
       let nymphClient =
         client.guid != null
           ? client
@@ -287,6 +297,7 @@ const oauth = new OAuth2Server({
     },
 
     saveAuthorizationCode: async (code, client, user) => {
+      console.log('saveAuthorizationCode', { code, client, user });
       let nymphClient =
         client.guid != null
           ? client
@@ -338,6 +349,7 @@ const oauth = new OAuth2Server({
     },
 
     revokeToken: async (token) => {
+      console.log('revokeToken', { token });
       let nymphToken = await nymph.getEntity(
         {
           class: AuthToken,
@@ -362,6 +374,7 @@ const oauth = new OAuth2Server({
     },
 
     revokeAuthorizationCode: async (code) => {
+      console.log('revokeAuthorizationCode', { code });
       let nymphCode = await nymph.getEntity(
         {
           class: AuthCode,
@@ -388,9 +401,10 @@ const oauth = new OAuth2Server({
     },
 
     validateScope: async (_user, client, scope) => {
+      console.log('validateScope', { _user, client, scope });
       const clientScopes = client.scopes.split(' ');
       const validScopes = VALID_SCOPES.filter(
-        (s) => clientScopes.inexOf(s) !== -1
+        (s) => clientScopes.indexOf(s) !== -1
       );
 
       if (
@@ -404,6 +418,7 @@ const oauth = new OAuth2Server({
     },
 
     verifyScope: async (accessToken, scope) => {
+      console.log('verifyScope', { accessToken, scope });
       if (!accessToken.scope) {
         return false;
       }
@@ -452,7 +467,18 @@ const oauthAuthorizeMiddleware = (options) => {
       const request = new Request(req);
       const response = new Response(res);
       try {
-        const code = await oauth.authorize(request, response, options);
+        const code = await oauth.authorize(request, response, {
+          authenticateHandler: {
+            handle: async (_req2, _res2) => {
+              const rnymph = nymph.clone();
+              rnymph.tilmeld.request = req;
+              rnymph.tilmeld.authenticate(true);
+
+              return rnymph.tilmeld.currentUser;
+            },
+          },
+          ...options,
+        });
         res.locals.oauth = { code: code };
         if (options.continueMiddleware) {
           next();
@@ -516,7 +542,7 @@ const handleError = (e, req, res, response) => {
     res.set(response.headers);
   }
 
-  res.status(e.code);
+  res.status(e.code || 500);
 
   if (e instanceof UnauthorizedRequestError) {
     return res.send();
@@ -525,33 +551,25 @@ const handleError = (e, req, res, response) => {
   res.send({ error: e.name, error_description: e.message });
 };
 
-const oauthMiddleware = express();
-oauthMiddleware.use(
-  cookieParser(),
-  express.json({ type: apex.consts.jsonldTypes }),
-  express.urlencoded({ extended: true }),
-  multer().none()
-);
-oauthMiddleware.use(
-  '/',
+nesoMiddleware.use(
   oauthAuthenticateMiddleware({
     allowExtendedTokenAttributes: false,
   })
 );
-oauthMiddleware.use(
+nesoMiddleware.post(
   '/oauth/authorize',
   oauthAuthorizeMiddleware({
     allowExtendedTokenAttributes: false,
   })
 );
-oauthMiddleware.use(
+nesoMiddleware.use(
   '/oauth/token',
   oauthTokenMiddleware({
     allowExtendedTokenAttributes: false,
   })
 );
 
-oauthMiddleware.post('/api/v1/apps', async (req, res) => {
+nesoMiddleware.post('/api/v1/apps', async (req, res) => {
   if (req.body.client_name == null || req.body.redirect_uris == null) {
     res.status(400);
     res.send('Bad request.');
@@ -603,7 +621,7 @@ oauthMiddleware.post('/api/v1/apps', async (req, res) => {
   }
 });
 
-oauthMiddleware.get('/api/v1/apps/verify_credentials', async (req, res) => {
+nesoMiddleware.get('/api/v1/apps/verify_credentials', async (req, res) => {
   if (
     res.locals.oauth &&
     res.locals.oauth.token &&
@@ -627,7 +645,7 @@ oauthMiddleware.get('/api/v1/apps/verify_credentials', async (req, res) => {
   }
 });
 
-oauthMiddleware.get('/api/v1/instance', async (req, res) => {
+nesoMiddleware.get('/api/v1/instance', async (req, res) => {
   const userCount = await nymph.getEntities({
     class: User,
     skipAc: true,
@@ -722,6 +740,5 @@ export {
   restMiddleware,
   tilmeldSetupMiddleware,
   corsMiddleware,
-  apexMiddleware,
-  oauthMiddleware,
+  nesoMiddleware,
 };

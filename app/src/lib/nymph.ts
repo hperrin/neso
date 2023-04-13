@@ -14,6 +14,8 @@ import { Settings as SettingsClass } from '$lib/entities/Settings.js';
 import type { SettingsData } from '$lib/entities/Settings.js';
 import { Todo as TodoClass } from '$lib/entities/Todo.js';
 import type { TodoData } from '$lib/entities/Todo.js';
+import { AuthClient as AuthClientClass } from '$lib/entities/AuthClient.js';
+import type { AuthClientData } from '$lib/entities/AuthClient.js';
 
 export type SessionStuff = {
   nymph: Nymph;
@@ -24,6 +26,7 @@ export type SessionStuff = {
   Project: typeof ProjectClass;
   Settings: typeof SettingsClass;
   Todo: typeof TodoClass;
+  AuthClient: typeof AuthClientClass;
 };
 
 const { w3cwebsocket } = websocket;
@@ -66,6 +69,7 @@ export const nymphBuilder = (
   const Project = nymph.addEntityClass(ProjectClass);
   const Settings = nymph.addEntityClass(SettingsClass);
   const Todo = nymph.addEntityClass(TodoClass);
+  const AuthClient = nymph.addEntityClass(AuthClientClass);
 
   // Help with dev.
   if (typeof window !== 'undefined') {
@@ -77,6 +81,7 @@ export const nymphBuilder = (
       Project,
       Settings,
       Todo,
+      AuthClient,
     };
   }
 
@@ -88,6 +93,7 @@ export const nymphBuilder = (
     Project,
     Settings,
     Todo,
+    AuthClient,
   };
 };
 
@@ -98,12 +104,8 @@ export let buildSessionStuff = (
   DOMAIN?: string,
   SECURE?: boolean
 ): SessionStuff => {
-  const { nymph, pubsub, User, Group, Project, Settings, Todo } = nymphBuilder(
-    fetch,
-    browser,
-    DOMAIN,
-    !!SECURE
-  );
+  const { nymph, pubsub, User, Group, Project, Settings, Todo, AuthClient } =
+    nymphBuilder(fetch, browser, DOMAIN, !!SECURE);
   const myStores = stores({ pubsub, Project, Settings });
   const {
     user,
@@ -152,6 +154,7 @@ export let buildSessionStuff = (
     Project,
     Settings,
     Todo,
+    AuthClient,
   };
 };
 
@@ -164,4 +167,6 @@ export type {
   SettingsData,
   TodoClass,
   TodoData,
+  AuthClientClass,
+  AuthClientData,
 };

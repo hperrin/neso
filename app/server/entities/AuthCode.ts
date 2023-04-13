@@ -106,4 +106,12 @@ export class AuthCode extends Entity<AuthCodeData> {
     this.$skipAcWhenSaving = true;
     return await this.$save();
   }
+
+  public $tilmeldSaveSkipAC() {
+    if (this.$skipAcWhenSaving) {
+      this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
+  }
 }

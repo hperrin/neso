@@ -44,14 +44,14 @@
   >
     <Row>
       <Section style="flex-grow: 0;">
-        {#if $user != null && $smallWindow}
+        {#if $user != null && $smallWindow && parsedApp !== 'oauth'}
           <IconButton on:click={() => ($drawerOpen = !$drawerOpen)}>
             <Icon component={Svg} viewBox="0 0 24 24">
               <path fill="currentColor" d={mdiMenu} />
             </Icon>
           </IconButton>
         {/if}
-        {#if $user == null || !$smallWindow}
+        {#if $user == null || !$smallWindow || parsedApp === 'oauth'}
           <Title
             tag="a"
             href="/"
@@ -67,7 +67,7 @@
           <SearchBox {stores} compact={$miniWindow} />
         {/if}
       </Section>
-      {#if !$miniWindow && $user}
+      {#if (!$miniWindow || parsedApp === 'oauth') && $user}
         <Section
           align="end"
           toolbar
@@ -119,8 +119,9 @@
   import { Label, Icon, Svg } from '@smui/common';
   import Logo from '$lib/components/Logo.svelte';
   import AccountMenu from '$lib/components/AccountMenu.svelte';
+  import parseApp from '$lib/utils/parseApp';
   import { base } from '$app/paths';
-  import { navigating } from '$app/stores';
+  import { navigating, page } from '$app/stores';
   import { invalidate } from '$app/navigation';
   import SearchBox from './_SearchBox.svelte';
   import type { LayoutData } from './$types';
@@ -150,6 +151,8 @@
     drawerOpen,
     settings,
   } = stores);
+
+  $: parsedApp = parseApp($page.url);
 
   // When the page first loads, the promises are already done.
   let promisesReady = true;

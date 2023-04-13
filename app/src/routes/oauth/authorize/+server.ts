@@ -1,8 +1,8 @@
-import type { RequestHandler } from './$types';
+// import type { RequestHandler } from './$types';
 
-export const GET = (() => {
-  return new Response(String('authorize'));
-}) satisfies RequestHandler;
+// export const GET = (() => {
+//   return new Response(String('authorize'));
+// }) satisfies RequestHandler;
 
 // import { error } from '@sveltejs/kit';
 // import { buildSessionStuff } from '$lib/nymph';
