@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import multer from 'multer';
 import OAuth2Server, {
   Request,
   Response,
@@ -167,7 +168,7 @@ const oauth = new OAuth2Server({
           type: '&',
           equal: [
             ['id', clientId],
-            ['secret', clientSecret],
+            ...(clientSecret ? ['secret', clientSecret] : []),
           ],
         }
       );
@@ -528,7 +529,8 @@ const oauthMiddleware = express();
 oauthMiddleware.use(
   cookieParser(),
   express.json({ type: apex.consts.jsonldTypes }),
-  express.urlencoded({ extended: true })
+  express.urlencoded({ extended: true }),
+  multer().none()
 );
 oauthMiddleware.use(
   '/',
