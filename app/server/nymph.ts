@@ -31,6 +31,10 @@ import { AuthCode as AuthCodeClass } from './entities/AuthCode.js';
 import type { AuthCodeData } from './entities/AuthCode.js';
 import { AuthToken as AuthTokenClass } from './entities/AuthToken.js';
 import type { AuthTokenData } from './entities/AuthToken.js';
+import { SocialContext as SocialContextClass } from './entities/SocialContext.js';
+import type { SocialContextData } from './entities/SocialContext.js';
+import { SocialDelivery as SocialDeliveryClass } from './entities/SocialDelivery.js';
+import type { SocialDeliveryData } from './entities/SocialDelivery.js';
 import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
 import type { SocialActivityData } from './entities/SocialActivity.js';
 import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
@@ -75,6 +79,10 @@ export type {
   AuthCodeData,
   AuthTokenClass,
   AuthTokenData,
+  SocialContextClass,
+  SocialContextData,
+  SocialDeliveryClass,
+  SocialDeliveryData,
   SocialActivityClass,
   SocialActivityData,
   SocialActorClass,
@@ -100,6 +108,8 @@ export type NymphInstance = {
   AuthClient: typeof AuthClientClass;
   AuthCode: typeof AuthCodeClass;
   AuthToken: typeof AuthTokenClass;
+  SocialContext: typeof SocialContextClass;
+  SocialDelivery: typeof SocialDeliveryClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
   SocialCollection: typeof SocialCollectionClass;
@@ -159,6 +169,8 @@ export function getNymphInstance({
   let AuthClient = AuthClientClass;
   let AuthCode = AuthCodeClass;
   let AuthToken = AuthTokenClass;
+  let SocialContext = SocialContextClass;
+  let SocialDelivery = SocialDeliveryClass;
   let SocialActivity = SocialActivityClass;
   let SocialActor = SocialActorClass;
   let SocialCollection = SocialCollectionClass;
@@ -226,6 +238,8 @@ export function getNymphInstance({
     AuthClient = nymph.addEntityClass(AuthClientClass);
     AuthCode = nymph.addEntityClass(AuthCodeClass);
     AuthToken = nymph.addEntityClass(AuthTokenClass);
+    SocialContext = nymph.addEntityClass(SocialContextClass);
+    SocialDelivery = nymph.addEntityClass(SocialDeliveryClass);
     SocialActivity = nymph.addEntityClass(SocialActivityClass);
     SocialActor = nymph.addEntityClass(SocialActorClass);
     SocialCollection = nymph.addEntityClass(SocialCollectionClass);
@@ -262,6 +276,8 @@ export function getNymphInstance({
     AuthClient,
     AuthCode,
     AuthToken,
+    SocialContext,
+    SocialDelivery,
     SocialActivity,
     SocialActor,
     SocialCollection,

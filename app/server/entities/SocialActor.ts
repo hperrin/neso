@@ -45,6 +45,7 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
   ];
 
   private $skipAcWhenSaving = false;
+  private $skipAcWhenDeleting = false;
 
   static async factory(guid?: string): Promise<SocialActor & SocialActorData> {
     return (await super.factory(guid)) as SocialActor & SocialActorData;
@@ -217,6 +218,31 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
   public $tilmeldSaveSkipAC() {
     if (this.$skipAcWhenSaving) {
       this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
+  }
+
+  async $delete() {
+    if (!this.$skipAcWhenDeleting) {
+      throw new HttpError('Only allowed by the server.', 403);
+    }
+    this.$skipAcWhenDeleting = false;
+
+    return await super.$delete();
+  }
+
+  /*
+   * This should *never* be accessible on the client.
+   */
+  public async $deleteSkipAC() {
+    this.$skipAcWhenDeleting = true;
+    return await this.$delete();
+  }
+
+  public $tilmeldDeleteSkipAC() {
+    if (this.$skipAcWhenDeleting) {
+      this.$skipAcWhenDeleting = false;
       return true;
     }
     return false;

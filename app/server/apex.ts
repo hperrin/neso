@@ -12,6 +12,10 @@ import type {
 } from 'activitypub-express';
 import ActivitypubExpress from 'activitypub-express';
 
+import { SocialContext as SocialContextClass } from './entities/SocialContext.js';
+import type { SocialContextData } from './entities/SocialContext.js';
+import { SocialDelivery as SocialDeliveryClass } from './entities/SocialDelivery.js';
+import type { SocialDeliveryData } from './entities/SocialDelivery.js';
 import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
 import type { SocialActivityData } from './entities/SocialActivity.js';
 import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
@@ -60,6 +64,8 @@ export function buildApex(nymph: Nymph) {
 class ApexStore implements IApexStore {
   nymph: Nymph;
   User: typeof UserClass;
+  SocialContext: typeof SocialContextClass;
+  SocialDelivery: typeof SocialDeliveryClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
   SocialCollection: typeof SocialCollectionClass;
@@ -69,6 +75,12 @@ class ApexStore implements IApexStore {
   constructor(nymph: Nymph) {
     this.nymph = nymph;
     this.User = nymph.getEntityClass(UserClass.class) as typeof UserClass;
+    this.SocialContext = nymph.getEntityClass(
+      SocialContextClass.class
+    ) as typeof SocialContextClass;
+    this.SocialDelivery = nymph.getEntityClass(
+      SocialDeliveryClass.class
+    ) as typeof SocialDeliveryClass;
     this.SocialActivity = nymph.getEntityClass(
       SocialActivityClass.class
     ) as typeof SocialActivityClass;
@@ -209,6 +221,8 @@ class ApexStore implements IApexStore {
               { class: this.SocialActivity },
               {
                 type: '|',
+                equal: ['object', objectId],
+                contain: ['object', objectId],
                 qref: [
                   'object',
                   [
@@ -216,8 +230,6 @@ class ApexStore implements IApexStore {
                     { type: '&', equal: ['id', objectId] },
                   ],
                 ],
-                equal: ['object', objectId],
-                contain: ['object', objectId],
               },
             ],
           ],
@@ -259,6 +271,8 @@ class ApexStore implements IApexStore {
               { class: this.SocialActivity },
               {
                 type: '|',
+                equal: ['actor', actorId],
+                contain: ['actor', actorId],
                 qref: [
                   'actor',
                   [
@@ -266,8 +280,6 @@ class ApexStore implements IApexStore {
                     { type: '&', equal: ['id', actorId] },
                   ],
                 ],
-                equal: ['actor', actorId],
-                contain: ['actor', actorId],
               },
             ],
           ],
@@ -357,6 +369,9 @@ class ApexStore implements IApexStore {
                       equal: blockList.map(
                         (actor) => ['actor', actor] as [string, string]
                       ),
+                      contain: blockList.map(
+                        (actor) => ['actor', actor] as [string, string]
+                      ),
                       qref: blockList.map(
                         (actor) =>
                           [
@@ -404,23 +419,35 @@ class ApexStore implements IApexStore {
   }
 
   async getContext(documentUrl: string) {
-    // TODO
-    console.log('getContext', { documentUrl });
-    return { contextUrl: '', documentUrl: '', document: {} };
+    // console.log('getContext', { documentUrl });
+
+    return this.nymph.getEntity(
+      { class: this.SocialContext, skipAc: true },
+      { type: '&', equal: ['documentUrl', documentUrl] }
+    );
   }
 
   async getUsercount() {
     // console.log('getUsercount');
+
     return await this.nymph.getEntities(
-      { class: this.User, return: 'count' },
+      { class: this.User, return: 'count', skipAc: true },
       { type: '&', truthy: 'enabled' }
     );
   }
 
   async saveContext(context: Context) {
-    // TODO
-    console.log('saveContext', context);
-    return;
+    // console.log('saveContext', context);
+
+    const contextEntity = await this.SocialContext.factory();
+
+    contextEntity.contextUrl = context.contextUrl;
+    contextEntity.documentUrl = context.documentUrl;
+    contextEntity.document = context.document;
+
+    if (!(await contextEntity.$saveSkipAC())) {
+      throw new Error("Couldn't save context.");
+    }
   }
 
   /**
@@ -492,8 +519,38 @@ class ApexStore implements IApexStore {
    * If no deliveries exist, return null.
    */
   async deliveryDequeue() {
-    // TODO
-    console.log('deliveryDequeue');
+    // console.log('deliveryDequeue');
+
+    const delivery = await this.nymph.getEntity(
+      { class: this.SocialDelivery, sort: 'after', skipAc: true },
+      { type: '&', lt: ['after', new Date().getTime()] }
+    );
+
+    if (delivery != null) {
+      const value = {
+        address: delivery.address,
+        actorId: delivery.actorId,
+        signingKey: delivery.signingKey,
+        body: delivery.body,
+        attempt: delivery.attempt,
+        after: new Date(delivery.after),
+      };
+
+      await delivery.$deleteSkipAC();
+
+      return value;
+    }
+
+    const next = await this.nymph.getEntity({
+      class: this.SocialDelivery,
+      sort: 'after',
+      skipAc: true,
+    });
+
+    if (next != null) {
+      return { waitUntil: new Date(next.after) };
+    }
+
     return null;
   }
 
@@ -503,13 +560,29 @@ class ApexStore implements IApexStore {
     addresses: string | string[],
     signingKey: string
   ) {
-    // TODO
-    console.log('deliveryEnqueue', {
-      actorId,
-      body,
-      addresses,
-      signingKey,
-    });
+    // console.log('deliveryEnqueue', {
+    //   actorId,
+    //   body,
+    //   addresses,
+    //   signingKey,
+    // });
+
+    if (!Array.isArray(addresses)) {
+      addresses = [addresses];
+    }
+
+    for (let address of addresses) {
+      const delivery = await this.SocialDelivery.factory();
+      delivery.address = address;
+      delivery.actorId = actorId;
+      delivery.signingKey = signingKey;
+      delivery.body = body;
+      delivery.attempt = 0;
+      delivery.after = new Date().getTime();
+
+      await delivery.$saveSkipAC();
+    }
+
     return true;
   }
 
@@ -517,7 +590,19 @@ class ApexStore implements IApexStore {
    * Insert the delivery back into the DB after updating its `after` prop.
    */
   async deliveryRequeue(delivery: Delivery) {
-    // TODO
-    console.log('deliveryRequeue', delivery);
+    // console.log('deliveryRequeue', delivery);
+
+    const deliveryEntity = await this.SocialDelivery.factory();
+    deliveryEntity.address = delivery.address;
+    deliveryEntity.actorId = delivery.actorId;
+    deliveryEntity.signingKey = delivery.signingKey;
+    deliveryEntity.body = delivery.body;
+    deliveryEntity.attempt = delivery.attempt + 1;
+    deliveryEntity.after =
+      delivery.after.getTime() + Math.pow(10, deliveryEntity.attempt);
+
+    if (!(await deliveryEntity.$saveSkipAC())) {
+      throw new Error("Couldn't save delivery.");
+    }
   }
 }

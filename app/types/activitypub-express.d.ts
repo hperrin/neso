@@ -93,7 +93,7 @@ declare module 'activitypub-express' {
 
     getStreamCount(collectionId: string): Promise<number>;
 
-    getContext(documentUrl: string): Promise<Context>;
+    getContext(documentUrl: string): Promise<Context | null>;
 
     getUsercount(): Promise<number>;
 

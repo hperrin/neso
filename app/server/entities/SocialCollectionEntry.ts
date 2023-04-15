@@ -23,6 +23,7 @@ export class SocialCollectionEntry extends Entity<SocialCollectionEntryData> {
   protected $allowlistTags = [];
 
   private $skipAcWhenSaving = false;
+  private $skipAcWhenDeleting = false;
 
   static async factory(
     guid?: string
@@ -150,6 +151,31 @@ export class SocialCollectionEntry extends Entity<SocialCollectionEntryData> {
   public $tilmeldSaveSkipAC() {
     if (this.$skipAcWhenSaving) {
       this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
+  }
+
+  async $delete() {
+    if (!this.$skipAcWhenDeleting) {
+      throw new HttpError('Only allowed by the server.', 403);
+    }
+    this.$skipAcWhenDeleting = false;
+
+    return await super.$delete();
+  }
+
+  /*
+   * This should *never* be accessible on the client.
+   */
+  public async $deleteSkipAC() {
+    this.$skipAcWhenDeleting = true;
+    return await this.$delete();
+  }
+
+  public $tilmeldDeleteSkipAC() {
+    if (this.$skipAcWhenDeleting) {
+      this.$skipAcWhenDeleting = false;
       return true;
     }
     return false;
