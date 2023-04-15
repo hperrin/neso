@@ -1,5 +1,6 @@
 import type { Selector } from '@nymphjs/nymph';
-import { Entity, nymphJoiProps } from '@nymphjs/nymph';
+import { Entity, nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
+import type { AccessControlData } from '@nymphjs/tilmeld';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
@@ -12,7 +13,7 @@ import type { SocialObjectBaseData } from './SocialObjectBase.js';
 export type SocialCollectionEntryData = {
   collection: SocialCollection & SocialCollectionData;
   entry: SocialObjectBase<SocialObjectBaseData> & SocialObjectBaseData;
-};
+} & AccessControlData;
 
 export class SocialCollectionEntry extends Entity<SocialCollectionEntryData> {
   static ETYPE = 'socialcollectionentry';
@@ -20,6 +21,8 @@ export class SocialCollectionEntry extends Entity<SocialCollectionEntryData> {
 
   protected $allowlistData = ['collection', 'entry'];
   protected $allowlistTags = [];
+
+  private $skipAcWhenSaving = false;
 
   static async factory(
     guid?: string
@@ -40,9 +43,44 @@ export class SocialCollectionEntry extends Entity<SocialCollectionEntryData> {
   }
 
   async $save() {
-    if (!this.$nymph.tilmeld?.gatekeeper()) {
-      // Only allow logged in users to save.
-      throw new HttpError('You are not logged in.', 401);
+    if (!this.$skipAcWhenSaving) {
+      throw new HttpError('Only allowed by the server.', 403);
+    }
+
+    if (this.$data.user != null) {
+      if (this.$data.group == null) {
+        this.$data.group = this.$data.user?.group;
+      }
+
+      if (this.$data.acUser == null) {
+        this.$data.acUser = TilmeldAccessLevels.FULL_ACCESS;
+      }
+      if (this.$data.acGroup == null) {
+        this.$data.acGroup = TilmeldAccessLevels.FULL_ACCESS;
+      }
+      if (this.$data.acOther == null) {
+        this.$data.acOther = TilmeldAccessLevels.READ_ACCESS;
+      }
+
+      if (this.$data.acRead == null) {
+        this.$data.acRead = [];
+      }
+      if (this.$data.acWrite == null) {
+        this.$data.acWrite = [];
+      }
+      if (this.$data.acFull == null) {
+        this.$data.acFull = [];
+      }
+    } else {
+      if (this.$data.acUser == null) {
+        this.$data.acUser = TilmeldAccessLevels.READ_ACCESS;
+      }
+      if (this.$data.acGroup == null) {
+        this.$data.acGroup = TilmeldAccessLevels.READ_ACCESS;
+      }
+      if (this.$data.acOther == null) {
+        this.$data.acOther = TilmeldAccessLevels.READ_ACCESS;
+      }
     }
 
     if (this.$data.collection.guid == null || this.$data.entry.guid == null) {
@@ -99,5 +137,21 @@ export class SocialCollectionEntry extends Entity<SocialCollectionEntryData> {
     }
 
     return await super.$save();
+  }
+
+  /*
+   * This should *never* be accessible on the client.
+   */
+  public async $saveSkipAC() {
+    this.$skipAcWhenSaving = true;
+    return await this.$save();
+  }
+
+  public $tilmeldSaveSkipAC() {
+    if (this.$skipAcWhenSaving) {
+      this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
   }
 }

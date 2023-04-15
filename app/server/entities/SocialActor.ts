@@ -1,5 +1,5 @@
 import type { Selector } from '@nymphjs/nymph';
-import { nymphJoiProps } from '@nymphjs/nymph';
+import { nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
@@ -30,7 +30,21 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
   static class = 'SocialActor';
 
   protected $privateData = ['_meta'];
-  protected $protectedData = ['id'];
+  protected $protectedData = [
+    'id',
+    'type',
+    'inbox',
+    'outbox',
+    'following',
+    'followers',
+    'liked',
+    'preferredUsername',
+    'streams',
+    'endpoints',
+    'publicKey',
+  ];
+
+  private $skipAcWhenSaving = false;
 
   static async factory(guid?: string): Promise<SocialActor & SocialActorData> {
     return (await super.factory(guid)) as SocialActor & SocialActorData;
@@ -104,9 +118,45 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
   }
 
   async $save() {
-    if (!this.$nymph.tilmeld?.gatekeeper()) {
+    if (!this.$skipAcWhenSaving && !this.$nymph.tilmeld?.gatekeeper()) {
       // Only allow logged in users to save.
       throw new HttpError('You are not logged in.', 401);
+    }
+
+    if (this.$data.user != null) {
+      if (this.$data.group == null) {
+        this.$data.group = this.$data.user?.group;
+      }
+
+      if (this.$data.acUser == null) {
+        this.$data.acUser = TilmeldAccessLevels.FULL_ACCESS;
+      }
+      if (this.$data.acGroup == null) {
+        this.$data.acGroup = TilmeldAccessLevels.FULL_ACCESS;
+      }
+      if (this.$data.acOther == null) {
+        this.$data.acOther = TilmeldAccessLevels.READ_ACCESS;
+      }
+
+      if (this.$data.acRead == null) {
+        this.$data.acRead = [];
+      }
+      if (this.$data.acWrite == null) {
+        this.$data.acWrite = [];
+      }
+      if (this.$data.acFull == null) {
+        this.$data.acFull = [];
+      }
+    } else {
+      if (this.$data.acUser == null) {
+        this.$data.acUser = TilmeldAccessLevels.READ_ACCESS;
+      }
+      if (this.$data.acGroup == null) {
+        this.$data.acGroup = TilmeldAccessLevels.READ_ACCESS;
+      }
+      if (this.$data.acOther == null) {
+        this.$data.acOther = TilmeldAccessLevels.READ_ACCESS;
+      }
     }
 
     // Check that this actor doesn't already exist.
@@ -154,6 +204,22 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
     }
 
     return await super.$save();
+  }
+
+  /*
+   * This should *never* be accessible on the client.
+   */
+  public async $saveSkipAC() {
+    this.$skipAcWhenSaving = true;
+    return await this.$save();
+  }
+
+  public $tilmeldSaveSkipAC() {
+    if (this.$skipAcWhenSaving) {
+      this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
   }
 }
 

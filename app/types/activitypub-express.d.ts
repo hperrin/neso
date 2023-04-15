@@ -67,13 +67,13 @@ declare module 'activitypub-express' {
       collection: string,
       objectId: string,
       includeMeta: boolean
-    ): Promise<APEXActivity | APEXIntransitiveActivity>;
+    ): Promise<APEXActivity | APEXIntransitiveActivity | null>;
 
     findActivityByCollectionAndActorId(
       collection: string,
       actorId: string,
       includeMeta: boolean
-    ): Promise<APEXActivity | APEXIntransitiveActivity>;
+    ): Promise<APEXActivity | APEXIntransitiveActivity | null>;
 
     /**
      * Return a specific collection (stream of activitites), e.g. a user's inbox

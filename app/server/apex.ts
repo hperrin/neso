@@ -1,4 +1,4 @@
-import type { Nymph } from '@nymphjs/nymph';
+import type { Nymph, Options, Selector } from '@nymphjs/nymph';
 import { guid } from '@nymphjs/guid';
 import { User as UserClass } from '@nymphjs/tilmeld';
 import type {
@@ -51,7 +51,7 @@ export function buildApex(nymph: Nymph) {
     store,
     endpoints: {
       uploadMedia: 'https://localhost/upload',
-      oauthAuthorizationEndpoint: 'https://localhost/auth/authorize',
+      oauthAuthorizationEndpoint: 'https://localhost/oauth/authorize',
       proxyUrl: 'https://localhost/proxy',
     },
   });
@@ -93,7 +93,14 @@ class ApexStore implements IApexStore {
 
   async getObject(id: string, includeMeta: boolean) {
     // console.log('getObject', { id, includeMeta });
-    if (id.startsWith(AP_USER_ID_PREFIX)) {
+
+    // Look for an actor.
+    const actor = await this.SocialActor.factoryId(id);
+    if (actor.guid != null) {
+      return (await actor.$toAPObject(includeMeta)) as APEXActor;
+    } else if (id.startsWith(AP_USER_ID_PREFIX)) {
+      // This is a user who doesn't have an actor object yet. Let's make them
+      // one.
       const username = id.substring(AP_USER_ID_PREFIX.length);
       const user = await this.User.factoryUsername(username);
 
@@ -101,28 +108,33 @@ class ApexStore implements IApexStore {
         throw new Error('Not found.');
       }
 
-      return {
-        type: 'Person',
-        id: `${AP_USER_ID_PREFIX}${user.username}`,
-        name: user.name,
-        preferredUsername: user.username,
-        inbox: `${AP_USER_INBOX_PREFIX}${user.username}`,
-        outbox: `${AP_USER_OUTBOX_PREFIX}${user.username}`,
-        followers: `${AP_USER_FOLLOWERS_PREFIX}${user.username}`,
-        following: `${AP_USER_FOLLOWING_PREFIX}${user.username}`,
-        liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
-      } as APEXActor;
-    }
+      actor.$acceptAPObject(
+        {
+          type: 'Person',
+          id: `${AP_USER_ID_PREFIX}${user.username}`,
+          name: user.name,
+          preferredUsername: user.username,
+          inbox: `${AP_USER_INBOX_PREFIX}${user.username}`,
+          outbox: `${AP_USER_OUTBOX_PREFIX}${user.username}`,
+          followers: `${AP_USER_FOLLOWERS_PREFIX}${user.username}`,
+          following: `${AP_USER_FOLLOWING_PREFIX}${user.username}`,
+          liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
+        } as APEXActor,
+        true
+      );
 
-    // Look for an actor.
-    const actor = await this.SocialActor.factoryId(id);
-    if (actor != null) {
+      actor.user = user;
+
+      if (!(await actor.$saveSkipAC())) {
+        throw new Error("Couldn't create actor for user.");
+      }
+
       return (await actor.$toAPObject(includeMeta)) as APEXActor;
     }
 
     // Look for an object.
     const object = await this.SocialObject.factoryId(id);
-    if (object != null) {
+    if (object.guid != null) {
       return (await object.$toAPObject(includeMeta)) as APEXObject;
     }
 
@@ -136,21 +148,21 @@ class ApexStore implements IApexStore {
       const obj = await this.SocialActivity.factory();
       await obj.$acceptAPObject(object, true);
 
-      return await obj.$save();
+      return await obj.$saveSkipAC();
     }
 
     if (isActor(object)) {
       const obj = await this.SocialActor.factory();
       await obj.$acceptAPObject(object, true);
 
-      return await obj.$save();
+      return await obj.$saveSkipAC();
     }
 
     if (isObject(object)) {
       const obj = await this.SocialObject.factory();
       await obj.$acceptAPObject(object, true);
 
-      return await obj.$save();
+      return await obj.$saveSkipAC();
     }
 
     throw new Error('Unsupported object type.');
@@ -173,18 +185,49 @@ class ApexStore implements IApexStore {
     objectId: string,
     includeMeta: boolean
   ) {
-    // TODO
-    console.log('findActivityByCollectionAndObjectId', {
-      collection,
-      objectId,
-      includeMeta,
-    });
-    return {
-      id: 'id',
-      type: 'Activity',
-      actor: ['someone'],
-      object: { type: 'Object' },
-    } as APEXActivity;
+    // console.log('findActivityByCollectionAndObjectId', {
+    //   collection,
+    //   objectId,
+    //   includeMeta,
+    // });
+
+    const entity = await this.nymph.getEntity(
+      { class: this.SocialCollectionEntry },
+      {
+        type: '&',
+        qref: [
+          [
+            'collection',
+            [
+              { class: this.SocialCollection },
+              { type: '&', equal: ['id', collection] },
+            ],
+          ],
+          [
+            'entry',
+            [
+              { class: this.SocialActivity },
+              {
+                type: '|',
+                qref: [
+                  'object',
+                  [
+                    { class: this.SocialObject },
+                    { type: '&', equal: ['id', objectId] },
+                  ],
+                ],
+                equal: ['object', objectId],
+                contain: ['object', objectId],
+              },
+            ],
+          ],
+        ],
+      }
+    );
+    if (entity) {
+      return (await entity.entry.$toAPObject(includeMeta)) as APEXActivity;
+    }
+    return null;
   }
 
   async findActivityByCollectionAndActorId(
@@ -192,18 +235,49 @@ class ApexStore implements IApexStore {
     actorId: string,
     includeMeta: boolean
   ) {
-    // TODO
-    console.log('findActivityByCollectionAndActorId', {
-      collection,
-      actorId,
-      includeMeta,
-    });
-    return {
-      id: 'id',
-      type: 'Activity',
-      actor: ['someone'],
-      object: { type: 'Object' },
-    } as APEXActivity;
+    // console.log('findActivityByCollectionAndActorId', {
+    //   collection,
+    //   actorId,
+    //   includeMeta,
+    // });
+
+    const entity = await this.nymph.getEntity(
+      { class: this.SocialCollectionEntry },
+      {
+        type: '&',
+        qref: [
+          [
+            'collection',
+            [
+              { class: this.SocialCollection },
+              { type: '&', equal: ['id', collection] },
+            ],
+          ],
+          [
+            'entry',
+            [
+              { class: this.SocialActivity },
+              {
+                type: '|',
+                qref: [
+                  'actor',
+                  [
+                    { class: this.SocialActor },
+                    { type: '&', equal: ['id', actorId] },
+                  ],
+                ],
+                equal: ['actor', actorId],
+                contain: ['actor', actorId],
+              },
+            ],
+          ],
+        ],
+      }
+    );
+    if (entity) {
+      return (await entity.entry.$toAPObject(includeMeta)) as APEXActivity;
+    }
+    return null;
   }
 
   /**
@@ -221,28 +295,112 @@ class ApexStore implements IApexStore {
     blockList?: string[],
     query?: any
   ) {
-    // TODO
-    console.log('getStream', {
-      collectionId,
-      limit,
-      after,
-      blockList,
-      query,
-    });
-    return [
-      // {
-      //   id: 'id',
-      //   type: 'Activity',
-      //   actor: ['someone'],
-      //   object: { type: 'Object' },
-      // } as APEXActivity,
-    ];
+    // console.log('getStream', {
+    //   collectionId,
+    //   limit,
+    //   after,
+    //   blockList,
+    //   query,
+    // });
+
+    let afterEntry:
+      | (SocialCollectionEntryClass & SocialCollectionEntryData)
+      | null = null;
+    if (after) {
+      let afterEntity: SocialActivityClass & SocialActivityData;
+      afterEntity = await this.SocialActivity.factoryId(after);
+
+      if (afterEntity.guid != null) {
+        afterEntry = await this.nymph.getEntity(
+          { class: this.SocialCollectionEntry },
+          { type: '&', ref: ['entry', afterEntity] }
+        );
+      }
+    }
+
+    const entries = await this.nymph.getEntities(
+      {
+        class: this.SocialCollectionEntry,
+        sort: 'cdate',
+        reverse: true,
+        ...(limit != null ? { limit } : {}),
+      },
+      {
+        type: '&',
+        qref: [
+          [
+            'collection',
+            [
+              { class: this.SocialCollection },
+              { type: '&', equal: ['id', collectionId] },
+            ],
+          ],
+        ],
+        ...(afterEntry != null && afterEntry.guid != null
+          ? {
+              lte: ['cdate', afterEntry.cdate || 0],
+              '!guid': afterEntry.guid,
+            }
+          : {}),
+      },
+      ...(blockList?.length
+        ? [
+            {
+              type: '!&',
+              qref: [
+                [
+                  'entry',
+                  [
+                    { class: this.SocialActivity },
+                    {
+                      type: '|',
+                      equal: blockList.map(
+                        (actor) => ['actor', actor] as [string, string]
+                      ),
+                      qref: blockList.map(
+                        (actor) =>
+                          [
+                            'actor',
+                            [
+                              { class: this.SocialActor },
+                              {
+                                type: '&',
+                                equal: ['id', actor],
+                              },
+                            ],
+                          ] as [string, [Options, ...Selector[]]]
+                      ),
+                    },
+                  ],
+                ],
+              ],
+            } as Selector,
+          ]
+        : [])
+    );
+
+    return (await Promise.all(
+      entries.map((e) => e.entry.$toAPObject(false))
+    )) as APEXActivity[];
   }
 
   async getStreamCount(collectionId: string) {
-    // TODO
-    console.log('getStreamCount', { collectionId });
-    return 1;
+    // console.log('getStreamCount', { collectionId });
+    return await this.nymph.getEntities(
+      { class: this.SocialCollectionEntry, return: 'count' },
+      {
+        type: '&',
+        qref: [
+          [
+            'collection',
+            [
+              { class: this.SocialCollection },
+              { type: '&', equal: ['id', collectionId] },
+            ],
+          ],
+        ],
+      }
+    );
   }
 
   async getContext(documentUrl: string) {
@@ -252,9 +410,11 @@ class ApexStore implements IApexStore {
   }
 
   async getUsercount() {
-    // TODO
-    console.log('getUsercount');
-    return 1;
+    // console.log('getUsercount');
+    return await this.nymph.getEntities(
+      { class: this.User, return: 'count' },
+      { type: '&', truthy: 'enabled' }
+    );
   }
 
   async saveContext(context: Context) {
