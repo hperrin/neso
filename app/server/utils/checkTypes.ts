@@ -6,6 +6,13 @@ import type {
   APObject,
 } from '_activitypub';
 
+import type {
+  SocialActivity,
+  SocialActivityData,
+} from '../entities/SocialActivity';
+import type { SocialActor, SocialActorData } from '../entities/SocialActor';
+import type { SocialObject, SocialObjectData } from '../entities/SocialObject';
+
 export function isActivity(object: any): object is APActivity {
   return (
     (typeof object === 'object' &&
@@ -70,6 +77,15 @@ export function isActivity(object: any): object is APActivity {
   );
 }
 
+export function isSocialActivity(
+  object:
+    | (SocialActivity & SocialActivityData)
+    | (SocialActor & SocialActorData)
+    | (SocialObject & SocialObjectData)
+): object is SocialActivity & SocialActivityData {
+  return isActivity(object);
+}
+
 export function isActor(object: any): object is APActor {
   return (
     (typeof object === 'object' &&
@@ -88,6 +104,15 @@ export function isActor(object: any): object is APActor {
   );
 }
 
+export function isSocialActor(
+  object:
+    | (SocialActivity & SocialActivityData)
+    | (SocialActor & SocialActorData)
+    | (SocialObject & SocialObjectData)
+): object is SocialActor & SocialActorData {
+  return isActor(object);
+}
+
 export function isCollection(object: any): object is APCollection {
   return (
     (typeof object === 'object' &&
@@ -97,6 +122,16 @@ export function isCollection(object: any): object is APCollection {
       (object.type.indexOf('Collection') !== -1 ||
         object.type.indexOf('OrderedCollection') !== -1))
   );
+}
+
+export function isSocialCollection(
+  object:
+    | (SocialActivity & SocialActivityData)
+    | (SocialActor & SocialActorData)
+    | (SocialObject & SocialObjectData)
+): object is SocialObject &
+  SocialObjectData & { type: 'Collection' | 'OrderedCollection' } {
+  return isCollection(object);
 }
 
 export function isCollectionPage(object: any): object is APCollectionPage {
@@ -109,6 +144,16 @@ export function isCollectionPage(object: any): object is APCollectionPage {
       (object.type.indexOf('CollectionPage') !== -1 ||
         object.type.indexOf('OrderedCollectionPage') !== -1))
   );
+}
+
+export function isSocialCollectionPage(
+  object:
+    | (SocialActivity & SocialActivityData)
+    | (SocialActor & SocialActorData)
+    | (SocialObject & SocialObjectData)
+): object is SocialObject &
+  SocialObjectData & { type: 'CollectionPage' | 'OrderedCollectionPage' } {
+  return isCollectionPage(object);
 }
 
 export function isObject(object: any): object is APObject {
@@ -149,4 +194,13 @@ export function isObject(object: any): object is APObject {
         object.type.indexOf('Profile') !== -1 ||
         object.type.indexOf('Tombstone') !== -1))
   );
+}
+
+export function isSocialObject(
+  object:
+    | (SocialActivity & SocialActivityData)
+    | (SocialActor & SocialActorData)
+    | (SocialObject & SocialObjectData)
+): object is SocialObject & SocialObjectData {
+  return isObject(object);
 }
