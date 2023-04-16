@@ -44,19 +44,25 @@ function parseTodoSearch<T extends EntityConstructor>(
 }
 
 export const load: PageLoad = async ({ params, parent }) => {
-  const { nymph, pubsub, stores } = await parent();
-  const { search, searchResults } = stores;
+  const { nymph, pubsub, stores, SocialObject } = await parent();
+  const { search } = stores;
 
   try {
     let searchQuery = params.query;
     search.set(searchQuery);
 
+    if (searchQuery.match(/^https?:\/\/\S+$/)) {
+      const result = await SocialObject.getId(searchQuery);
+
+      return { searchResults: result == null ? [] : [result] };
+    } else {
+      return { searchResults: [] };
+    }
+
     const query = parseTodoSearch<typeof TodoClass>(searchQuery, nymph);
     const subscribable = pubsub.subscribeEntities(...query);
 
-    searchResults.set(await nymph.getEntities(...query));
-
-    return { subscribable };
+    return { subscribable, searchResults: await nymph.getEntities(...query) };
   } catch (e: any) {
     throw error(e?.status ?? 500, e.message);
   }

@@ -10,8 +10,6 @@ import type {
   ProjectData,
   SettingsClass,
   SettingsData,
-  TodoClass,
-  TodoData,
 } from '$lib/nymph';
 
 export type Stores = {
@@ -28,7 +26,6 @@ export type Stores = {
   projectsReadyPromise: Writable<Promise<void>>;
   projects: Writable<(ProjectClass & ProjectData)[]>;
   search: Writable<string>;
-  searchResults: Writable<(TodoClass & TodoData)[]>;
   loading: Writable<boolean>;
   smallWindow: Writable<boolean>;
   miniWindow: Writable<boolean>;
@@ -82,7 +79,6 @@ export default function stores(
   // Todo Related
 
   const search = writable<string>('');
-  const searchResults = writable<(TodoClass & TodoData)[]>([]);
 
   // Projects Related
 
@@ -220,7 +216,6 @@ export default function stores(
       settings.set(Settings.factorySync());
       projects.set([]);
       search.set('');
-      searchResults.set([]);
 
       settingsReadyPromiseResolve();
       projectsReadyPromiseResolve();
@@ -254,7 +249,6 @@ export default function stores(
     projectsReadyPromise,
     projects,
     search,
-    searchResults,
     loading,
     smallWindow,
     miniWindow,
