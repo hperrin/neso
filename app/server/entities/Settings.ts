@@ -1,4 +1,5 @@
-import { Entity, Selector, nymphJoiProps } from '@nymphjs/nymph';
+import type { Selector } from '@nymphjs/nymph';
+import { Entity, nymphJoiProps } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';

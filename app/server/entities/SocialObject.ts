@@ -3,7 +3,7 @@ import { nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
-import { APObject } from '_activitypub';
+import type { APObject } from '_activitypub';
 
 import { SocialObjectBase, apObjectJoiBuilder } from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';

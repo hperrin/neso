@@ -12,7 +12,8 @@
     "outDir": "../build/nymph",
     "resolveJsonModule": true,
     "rootDir": "./",
-    "declaration": true
+    "declaration": true,
+    "verbatimModuleSyntax": true
   },
   "include": ["./**/*", "../src/types/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"]

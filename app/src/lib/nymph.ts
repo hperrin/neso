@@ -16,6 +16,12 @@ import { Todo as TodoClass } from '$lib/entities/Todo.js';
 import type { TodoData } from '$lib/entities/Todo.js';
 import { AuthClient as AuthClientClass } from '$lib/entities/AuthClient.js';
 import type { AuthClientData } from '$lib/entities/AuthClient.js';
+import { SocialActivity as SocialActivityClass } from '$lib/entities/SocialActivity.js';
+import type { SocialActivityData } from '$lib/entities/SocialActivity.js';
+import { SocialActor as SocialActorClass } from '$lib/entities/SocialActor.js';
+import type { SocialActorData } from '$lib/entities/SocialActor.js';
+import { SocialObject as SocialObjectClass } from '$lib/entities/SocialObject.js';
+import type { SocialObjectData } from '$lib/entities/SocialObject.js';
 
 export type SessionStuff = {
   nymph: Nymph;
@@ -27,6 +33,9 @@ export type SessionStuff = {
   Settings: typeof SettingsClass;
   Todo: typeof TodoClass;
   AuthClient: typeof AuthClientClass;
+  SocialActivity: typeof SocialActivityClass;
+  SocialActor: typeof SocialActorClass;
+  SocialObject: typeof SocialObjectClass;
 };
 
 const { w3cwebsocket } = websocket;
@@ -70,6 +79,9 @@ export const nymphBuilder = (
   const Settings = nymph.addEntityClass(SettingsClass);
   const Todo = nymph.addEntityClass(TodoClass);
   const AuthClient = nymph.addEntityClass(AuthClientClass);
+  const SocialActivity = nymph.addEntityClass(SocialActivityClass);
+  const SocialActor = nymph.addEntityClass(SocialActorClass);
+  const SocialObject = nymph.addEntityClass(SocialObjectClass);
 
   // Help with dev.
   if (typeof window !== 'undefined') {
@@ -82,6 +94,9 @@ export const nymphBuilder = (
       Settings,
       Todo,
       AuthClient,
+      SocialActivity,
+      SocialActor,
+      SocialObject,
     };
   }
 
@@ -94,6 +109,9 @@ export const nymphBuilder = (
     Settings,
     Todo,
     AuthClient,
+    SocialActivity,
+    SocialActor,
+    SocialObject,
   };
 };
 
@@ -104,8 +122,19 @@ export let buildSessionStuff = (
   DOMAIN?: string,
   SECURE?: boolean
 ): SessionStuff => {
-  const { nymph, pubsub, User, Group, Project, Settings, Todo, AuthClient } =
-    nymphBuilder(fetch, browser, DOMAIN, !!SECURE);
+  const {
+    nymph,
+    pubsub,
+    User,
+    Group,
+    Project,
+    Settings,
+    Todo,
+    AuthClient,
+    SocialActivity,
+    SocialActor,
+    SocialObject,
+  } = nymphBuilder(fetch, browser, DOMAIN, !!SECURE);
   const myStores = stores({ pubsub, Project, Settings });
   const {
     user,
@@ -155,6 +184,9 @@ export let buildSessionStuff = (
     Settings,
     Todo,
     AuthClient,
+    SocialActivity,
+    SocialActor,
+    SocialObject,
   };
 };
 
@@ -169,4 +201,10 @@ export type {
   TodoData,
   AuthClientClass,
   AuthClientData,
+  SocialActivityClass,
+  SocialActivityData,
+  SocialActorClass,
+  SocialActorData,
+  SocialObjectClass,
+  SocialObjectData,
 };

@@ -2,7 +2,7 @@ import { Entity } from '@nymphjs/nymph';
 import type { AccessControlData } from '@nymphjs/tilmeld';
 import Joi from 'joi';
 import type { SchemaMap } from 'joi';
-import { APLink, APObject, APCollection } from '_activitypub';
+import type { APLink, APObject, APCollection } from '_activitypub';
 
 export type SocialObjectBaseData = {
   [k: string]: any;
