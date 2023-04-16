@@ -12,10 +12,11 @@ import {
   apObjectOrLinkJoi,
   apObjectOrLinkOrArrayJoi,
   apObjectJoiBuilder,
+  apObjectJoi,
 } from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';
 import { socialObjectJoiProps } from './SocialObject.js';
-import { apActorJoiBuilder } from './SocialActor.js';
+import { apActorJoi } from './SocialActor.js';
 
 export type SocialActivityData = SocialObjectBaseData & {
   type:
@@ -259,22 +260,16 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
     try {
       Joi.attempt(
         this.$getValidatable(),
-        apActivityJoiBuilder({
-          ...nymphJoiProps,
-          ...tilmeldJoiProps,
-
-          ...socialObjectJoiProps,
-          ...socialActivityJoiProps,
-        }),
+        nymphSocialActivityJoi,
         'Invalid SocialActivity: '
       );
     } catch (e: any) {
       throw new HttpError(e.message, 400);
     }
 
-    if (JSON.stringify(this.$getValidatable()).length > 50 * 1024) {
+    if (JSON.stringify(this.$getValidatable()).length > 200 * 1024) {
       throw new HttpError(
-        'This server has a max of 50KiB for activities.',
+        'This server has a max of 200KiB for activities.',
         413
       );
     }
@@ -299,45 +294,51 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
   }
 }
 
-export const apActivityJoiBuilder = (additionalKeys: SchemaMap<any> = {}) =>
-  apObjectJoiBuilder({
-    actor: Joi.alternatives()
-      .try(
-        apLinkJoi,
-        apActorJoiBuilder(),
-        apObjectJoiBuilder(),
-        Joi.array().items(
-          Joi.alternatives().try(
-            apLinkJoi,
-            apActorJoiBuilder(),
-            apObjectJoiBuilder()
-          )
-        )
-      )
-      .required(),
-    object: apObjectOrLinkOrArrayJoi,
-    target: apObjectOrLinkOrArrayJoi,
-    result: apObjectOrLinkOrArrayJoi,
-    origin: apObjectOrLinkOrArrayJoi,
-    instrument: apObjectOrLinkOrArrayJoi,
-
-    anyOf: apObjectOrLinkOrArrayJoi,
-    oneOf: apObjectOrLinkOrArrayJoi,
-    closed: Joi.alternatives().try(
-      apObjectOrLinkJoi,
-      Joi.string().uri(),
-      Joi.boolean(),
+export const apActivityJoiProps = {
+  actor: Joi.alternatives()
+    .try(
+      apLinkJoi,
+      Joi.link('#Root.__ACTOR'),
       Joi.array().items(
-        Joi.alternatives().try(
-          apObjectOrLinkJoi,
-          Joi.string().uri(),
-          Joi.boolean()
-        )
+        Joi.alternatives().try(apLinkJoi, Joi.link('#Root.__ACTOR'))
       )
-    ),
+    )
+    .required(),
+  object: apObjectOrLinkOrArrayJoi,
+  target: apObjectOrLinkOrArrayJoi,
+  result: apObjectOrLinkOrArrayJoi,
+  origin: apObjectOrLinkOrArrayJoi,
+  instrument: apObjectOrLinkOrArrayJoi,
 
-    ...additionalKeys,
-  });
+  anyOf: apObjectOrLinkOrArrayJoi,
+  oneOf: apObjectOrLinkOrArrayJoi,
+  closed: Joi.alternatives().try(
+    apObjectOrLinkJoi,
+    Joi.string().uri(),
+    Joi.boolean(),
+    Joi.array().items(
+      Joi.alternatives().try(
+        apObjectOrLinkJoi,
+        Joi.string().uri(),
+        Joi.boolean()
+      )
+    )
+  ),
+};
+
+export const apActivityJoiBuilder = (
+  additionalKeys: SchemaMap<any> = {},
+  id: string
+) =>
+  apObjectJoiBuilder(
+    {
+      ...apActivityJoiProps,
+      ...additionalKeys,
+    },
+    id
+  );
+
+export const apActivityJoi = apActivityJoiBuilder({}, 'APActivity');
 
 export const socialActivityJoiProps = {
   type: Joi.any()
@@ -373,3 +374,20 @@ export const socialActivityJoiProps = {
     )
     .required(),
 };
+
+export const nymphSocialActivityJoi = apActivityJoiBuilder(
+  {
+    ...nymphJoiProps,
+    ...tilmeldJoiProps,
+
+    ...socialObjectJoiProps,
+    ...socialActivityJoiProps,
+
+    // This is needed for "APObject" links.
+    __OBJECT: apObjectJoi,
+
+    // This is needed for "APActor" links.
+    __ACTOR: apActorJoi,
+  },
+  'Root'
+);

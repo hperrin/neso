@@ -1,6 +1,7 @@
 import type { Selector } from '@nymphjs/nymph';
 import { Entity, nymphJoiProps } from '@nymphjs/nymph';
 import { HttpError } from '@nymphjs/server';
+import type { Context } from 'activitypub-express';
 import Joi from 'joi';
 
 export type SocialContextData = {
@@ -30,6 +31,32 @@ export class SocialContext extends Entity<SocialContextData> {
 
   static factorySync(guid?: string): SocialContext & SocialContextData {
     return super.factorySync(guid) as SocialContext & SocialContextData;
+  }
+
+  async $acceptJsonContext(obj: Context, fullReplace: boolean) {
+    if (fullReplace) {
+      for (const name in this.$data) {
+        delete this.$data[name as keyof SocialContextData];
+      }
+    }
+
+    if ('contextUrl' in obj) {
+      this.$data.contextUrl = obj.contextUrl;
+    }
+    if ('documentUrl' in obj) {
+      this.$data.documentUrl = obj.documentUrl;
+    }
+    if ('document' in obj) {
+      this.$data.document = obj.document;
+    }
+  }
+
+  async $toJsonContext(): Promise<Context> {
+    return {
+      contextUrl: this.$data.contextUrl,
+      documentUrl: this.$data.documentUrl,
+      document: this.$data.document,
+    };
   }
 
   constructor(guid?: string) {

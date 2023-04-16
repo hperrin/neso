@@ -57,9 +57,6 @@ export class SocialObjectBase<
   static class = 'Never';
 
   async $acceptAPObject(obj: APObject, fullReplace: boolean) {
-    // Validate the object first.
-    Joi.attempt(obj, apObjectJoiBuilder(), 'Invalid APObject: ');
-
     if (fullReplace) {
       for (const name in this.$data) {
         if (
@@ -177,7 +174,7 @@ export class SocialObjectBase<
           break;
         // Everything else
         default:
-          obj[name] = this.$convertToAPObject(this.$data[name]);
+          obj[name] = await this.$convertToAPObject(this.$data[name]);
           break;
       }
     }
@@ -186,30 +183,34 @@ export class SocialObjectBase<
   }
 
   async $save(): Promise<boolean> {
-    throw new Error("You can't save this entity type.");
+    if (this.constructor === this.$nymph.getEntityClass('Never')) {
+      throw new Error("You can't save this entity type.");
+    }
+
+    return await super.$save();
   }
 }
 
 export const apLinkJoi = Joi.alternatives().try(
   Joi.string().uri(),
-  Joi.object().keys({
+  Joi.object({
     type: Joi.any().valid('Link', 'Mention').required(),
-    fullType: Joi.array().items(Joi.string().max(512).trim(false)).required(),
+    fullType: Joi.array().items(Joi.string().trim(false)).required(),
     href: Joi.string().uri().required(),
-    rel: Joi.array().items(Joi.string().max(64).trim(false)),
-    mediaType: Joi.array().items(Joi.string().max(96).trim(false)),
-    name: Joi.string().max(240),
-    nameMap: Joi.object().pattern(/.*/, Joi.string().max(240)),
-    hreflang: Joi.string().max(128),
+    rel: Joi.array().items(Joi.string().trim(false)),
+    mediaType: Joi.array().items(Joi.string().trim(false)),
+    name: Joi.string(),
+    nameMap: Joi.object().pattern(/.*/, Joi.string()),
+    hreflang: Joi.string(),
     height: Joi.number(),
     width: Joi.number(),
     preview: Joi.link('#APObjectOrAPLinkOrArray'),
     attributedTo: Joi.link('#APObjectOrAPLinkOrArray'),
-  })
+  }).pattern(/.*/, Joi.any())
 );
 
 export const apObjectOrLinkJoi = Joi.alternatives().try(
-  Joi.link('#APObject'),
+  Joi.link('#Root.__OBJECT'),
   apLinkJoi
 );
 
@@ -224,7 +225,9 @@ export const apCollectionPageJoi = Joi.object({
   prev: Joi.alternatives().try(Joi.link('#APCollectionPage'), apLinkJoi),
   items: apObjectOrLinkOrArrayJoi,
   orderedItems: apObjectOrLinkOrArrayJoi,
-}).id('APCollectionPage');
+})
+  .pattern(/.*/, Joi.any())
+  .id('APCollectionPage');
 
 export const apCollectionJoi = Joi.object({
   type: Joi.any().valid('Collection', 'OrderedCollection').required(),
@@ -234,59 +237,72 @@ export const apCollectionJoi = Joi.object({
   last: Joi.alternatives().try(apCollectionPageJoi, apLinkJoi),
   items: apObjectOrLinkOrArrayJoi,
   orderedItems: apObjectOrLinkOrArrayJoi,
-}).id('APCollection');
+})
+  .pattern(/.*/, Joi.any())
+  .id('APCollection');
 
 export const apCollectionOrLinkJoi = Joi.alternatives().try(
   apCollectionJoi,
   apLinkJoi
 );
 
-export const apObjectJoiBuilder = (additionalKeys: SchemaMap<any> = {}) =>
+export const apObjectJoiProps = {
+  type: Joi.alternatives()
+    .try(Joi.string(), Joi.array().items(Joi.string()))
+    .required(),
+  id: Joi.string().trim(false).uri(),
+
+  attachment: apObjectOrLinkOrArrayJoi,
+  attributedTo: apObjectOrLinkOrArrayJoi,
+  audience: apObjectOrLinkOrArrayJoi,
+  content: Joi.string(),
+  contentMap: Joi.object().pattern(/.*/, Joi.string()),
+  name: Joi.string(),
+  nameMap: Joi.object().pattern(/.*/, Joi.string()),
+  endTime: Joi.string().isoDate(),
+  generator: apObjectOrLinkOrArrayJoi,
+  icon: apObjectOrLinkOrArrayJoi,
+  image: apObjectOrLinkOrArrayJoi,
+  inReplyTo: apObjectOrLinkOrArrayJoi,
+  location: apObjectOrLinkOrArrayJoi,
+  preview: apObjectOrLinkOrArrayJoi,
+  published: Joi.string().isoDate(),
+  replies: apCollectionOrLinkJoi,
+  startTime: Joi.string().isoDate(),
+  summary: Joi.string(),
+  summaryMap: Joi.object().pattern(/.*/, Joi.string()),
+  tag: apObjectOrLinkOrArrayJoi,
+  updated: Joi.string().isoDate(),
+  url: Joi.alternatives().try(
+    Joi.string().uri(),
+    apLinkJoi,
+    Joi.array().items(Joi.alternatives().try(Joi.string().uri(), apLinkJoi))
+  ),
+  to: apObjectOrLinkOrArrayJoi,
+  bto: apObjectOrLinkOrArrayJoi,
+  cc: apObjectOrLinkOrArrayJoi,
+  bcc: apObjectOrLinkOrArrayJoi,
+  mediaType: Joi.string().trim(false),
+  duration: Joi.string().trim(false),
+
+  context: apObjectOrLinkOrArrayJoi,
+  source: Joi.object().keys({
+    content: Joi.string().required(),
+    mediaType: Joi.string().trim(false).required(),
+  }),
+  likes: apCollectionOrLinkJoi,
+  shares: apCollectionOrLinkJoi,
+};
+
+export const apObjectJoiBuilder = (
+  additionalKeys: SchemaMap<any> = {},
+  id: string
+) =>
   Joi.object({
-    type: Joi.alternatives()
-      .try(
-        Joi.string().max(512).trim(false),
-        Joi.array().items(Joi.string().max(512).trim(false))
-      )
-      .required(),
-    id: Joi.string().max(2048).trim(false).uri(),
-
-    attachment: apObjectOrLinkOrArrayJoi,
-    attributedTo: apObjectOrLinkOrArrayJoi,
-    audience: apObjectOrLinkOrArrayJoi,
-    content: Joi.string().max(5000),
-    contentMap: Joi.object().pattern(/.*/, Joi.string().max(5000)),
-    name: Joi.string().max(240),
-    nameMap: Joi.object().pattern(/.*/, Joi.string().max(240)),
-    endTime: Joi.string().isoDate(),
-    generator: apObjectOrLinkOrArrayJoi,
-    icon: apObjectOrLinkOrArrayJoi,
-    image: apObjectOrLinkOrArrayJoi,
-    inReplyTo: apObjectOrLinkOrArrayJoi,
-    location: apObjectOrLinkOrArrayJoi,
-    preview: apObjectOrLinkOrArrayJoi,
-    published: Joi.string().isoDate(),
-    replies: apCollectionOrLinkJoi,
-    startTime: Joi.string().isoDate(),
-    summary: Joi.string().max(2000),
-    summaryMap: Joi.object().pattern(/.*/, Joi.string().max(2000)),
-    tag: apObjectOrLinkOrArrayJoi,
-    updated: Joi.string().isoDate(),
-    url: Joi.array().items(Joi.string().uri()),
-    to: apObjectOrLinkOrArrayJoi,
-    bto: apObjectOrLinkOrArrayJoi,
-    cc: apObjectOrLinkOrArrayJoi,
-    bcc: apObjectOrLinkOrArrayJoi,
-    mediaType: Joi.string().max(64).trim(false),
-    duration: Joi.string().max(64).trim(false),
-
-    context: apObjectOrLinkOrArrayJoi,
-    source: Joi.object().keys({
-      content: Joi.string().max(5000).required(),
-      mediaType: Joi.string().max(64).trim(false).required(),
-    }),
-    likes: apCollectionOrLinkJoi,
-    shares: apCollectionOrLinkJoi,
-
+    ...apObjectJoiProps,
     ...additionalKeys,
-  }).id('APObject');
+  })
+    .pattern(/.*/, Joi.any())
+    .id(id);
+
+export const apObjectJoi = apObjectJoiBuilder({}, 'APObject');

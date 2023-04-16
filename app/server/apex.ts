@@ -35,7 +35,7 @@ import { isActivity, isActor, isObject } from './utils/checkTypes.js';
 export function buildApex(nymph: Nymph) {
   const store = new ApexStore(nymph);
 
-  return ActivitypubExpress({
+  const apex = ActivitypubExpress({
     name: 'Neso',
     version: '1.0.0',
     openRegistrations: false,
@@ -53,6 +53,10 @@ export function buildApex(nymph: Nymph) {
       proxyUrl: `${ADDRESS}/proxy`,
     },
   });
+
+  store.setApex(apex);
+
+  return apex;
 }
 
 class ApexStore implements IApexStore {
@@ -63,6 +67,8 @@ class ApexStore implements IApexStore {
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
   SocialObject: typeof SocialObjectClass;
+
+  apex: ReturnType<typeof ActivitypubExpress>;
 
   constructor(nymph: Nymph) {
     this.nymph = nymph;
@@ -82,27 +88,35 @@ class ApexStore implements IApexStore {
     this.SocialObject = nymph.getEntityClass(
       SocialObjectClass.class
     ) as typeof SocialObjectClass;
+
+    this.apex = {} as unknown as ReturnType<typeof ActivitypubExpress>;
+  }
+
+  setApex(apex: ReturnType<typeof ActivitypubExpress>) {
+    this.apex = apex;
   }
 
   async setup(_optionalActor: APEXActor) {
-    // console.log('setup');
+    console.log('setup');
   }
 
-  async getObject(id: string, includeMeta: boolean) {
-    // console.log('getObject', { id, includeMeta });
+  async getObject(id: string, includeMeta?: boolean) {
+    console.log('getObject', { id, includeMeta });
 
     // Look for an actor.
     const actor = await this.SocialActor.factoryId(id);
     if (actor.guid != null) {
-      return (await actor.$toAPObject(includeMeta)) as APEXActor;
+      return await this.apex.fromJSONLD(
+        (await actor.$toAPObject(!!includeMeta)) as APEXActor
+      );
     } else if (id.startsWith(AP_USER_ID_PREFIX)) {
       // This is a user who doesn't have an actor object yet. Let's make them
       // one.
       const username = id.substring(AP_USER_ID_PREFIX.length);
       const user = await this.User.factoryUsername(username);
 
-      if (!user) {
-        throw new Error('Not found.');
+      if (user.guid == null) {
+        return null;
       }
 
       actor.$acceptAPObject(
@@ -155,59 +169,87 @@ class ApexStore implements IApexStore {
         privateKey,
       };
 
-      if (!(await actor.$saveSkipAC())) {
-        throw new Error("Couldn't create actor for user.");
+      try {
+        if (!(await actor.$saveSkipAC())) {
+          throw new Error("Couldn't create actor for user.");
+        }
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
       }
 
-      return (await actor.$toAPObject(includeMeta)) as APEXActor;
+      return await this.apex.fromJSONLD(
+        (await actor.$toAPObject(!!includeMeta)) as APEXActor
+      );
     }
 
     // Look for an object.
     const object = await this.SocialObject.factoryId(id);
     if (object.guid != null) {
-      return (await object.$toAPObject(includeMeta)) as APEXObject;
+      return await this.apex.fromJSONLD(
+        (await object.$toAPObject(!!includeMeta)) as APEXObject
+      );
     }
 
-    throw new Error('Not found.');
+    return null;
   }
 
   async saveObject(object: APEXObject) {
-    // console.log('saveObject', object);
+    const formattedObject = await this.apex.toJSONLD(object);
 
-    if (isActivity(object)) {
+    console.log('saveObject', formattedObject);
+
+    if (isActivity(formattedObject)) {
       const obj = await this.SocialActivity.factory();
-      await obj.$acceptAPObject(object, true);
+      await obj.$acceptAPObject(formattedObject, true);
 
-      return await obj.$saveSkipAC();
+      try {
+        return await obj.$saveSkipAC();
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
     }
 
-    if (isActor(object)) {
+    if (isActor(formattedObject)) {
       const obj = await this.SocialActor.factory();
-      await obj.$acceptAPObject(object, true);
+      await obj.$acceptAPObject(formattedObject, true);
 
-      return await obj.$saveSkipAC();
+      try {
+        return await obj.$saveSkipAC();
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
     }
 
-    if (isObject(object)) {
+    if (isObject(formattedObject)) {
       const obj = await this.SocialObject.factory();
-      await obj.$acceptAPObject(object, true);
+      await obj.$acceptAPObject(formattedObject, true);
 
-      return await obj.$saveSkipAC();
+      try {
+        return await obj.$saveSkipAC();
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
     }
 
     throw new Error('Unsupported object type.');
   }
 
-  async getActivity(id: string, includeMeta: boolean) {
-    // console.log('getActivity', { id, includeMeta });
+  async getActivity(id: string, includeMeta?: boolean) {
+    console.log('getActivity', { id, includeMeta });
 
     // Look for an activity.
     const activity = await this.SocialActivity.factoryId(id);
-    if (activity != null) {
-      return (await activity.$toAPObject(includeMeta)) as APEXActivity;
+    if (activity.guid != null) {
+      return await this.apex.fromJSONLD(
+        (await activity.$toAPObject(!!includeMeta)) as APEXActivity
+      );
     }
 
-    throw new Error('Not found.');
+    return null;
   }
 
   async findActivityByCollectionAndObjectId(
@@ -215,11 +257,11 @@ class ApexStore implements IApexStore {
     objectId: string,
     includeMeta: boolean
   ) {
-    // console.log('findActivityByCollectionAndObjectId', {
-    //   collection,
-    //   objectId,
-    //   includeMeta,
-    // });
+    console.log('findActivityByCollectionAndObjectId', {
+      collection,
+      objectId,
+      includeMeta,
+    });
 
     const entity = await this.nymph.getEntity(
       { class: this.SocialActivity },
@@ -241,7 +283,9 @@ class ApexStore implements IApexStore {
       }
     );
     if (entity) {
-      return (await entity.$toAPObject(includeMeta)) as APEXActivity;
+      return await this.apex.fromJSONLD(
+        (await entity.$toAPObject(includeMeta)) as APEXActivity
+      );
     }
     return null;
   }
@@ -249,13 +293,13 @@ class ApexStore implements IApexStore {
   async findActivityByCollectionAndActorId(
     collection: string,
     actorId: string,
-    includeMeta: boolean
+    includeMeta?: boolean
   ) {
-    // console.log('findActivityByCollectionAndActorId', {
-    //   collection,
-    //   actorId,
-    //   includeMeta,
-    // });
+    console.log('findActivityByCollectionAndActorId', {
+      collection,
+      actorId,
+      includeMeta,
+    });
 
     const entity = await this.nymph.getEntity(
       { class: this.SocialActivity },
@@ -274,7 +318,9 @@ class ApexStore implements IApexStore {
       }
     );
     if (entity) {
-      return (await entity.$toAPObject(includeMeta)) as APEXActivity;
+      return await this.apex.fromJSONLD(
+        (await entity.$toAPObject(!!includeMeta)) as APEXActivity
+      );
     }
     return null;
   }
@@ -294,13 +340,13 @@ class ApexStore implements IApexStore {
     blockList?: string[],
     query?: any
   ) {
-    // console.log('getStream', {
-    //   collectionId,
-    //   limit,
-    //   after,
-    //   blockList,
-    //   query,
-    // });
+    console.log('getStream', {
+      collectionId,
+      limit,
+      after,
+      blockList,
+      query,
+    });
 
     let afterEntry = after ? await this.SocialActivity.factoryId(after) : null;
     if (afterEntry && afterEntry.guid == null) {
@@ -353,12 +399,15 @@ class ApexStore implements IApexStore {
     );
 
     return (await Promise.all(
-      entries.map((e) => e.entry.$toAPObject(false))
+      entries.map(
+        async (e) =>
+          await this.apex.fromJSONLD(await e.entry.$toAPObject(false))
+      )
     )) as APEXActivity[];
   }
 
   async getStreamCount(collectionId: string) {
-    // console.log('getStreamCount', { collectionId });
+    console.log('getStreamCount', { collectionId });
     return await this.nymph.getEntities(
       { class: this.SocialActivity, return: 'count' },
       {
@@ -369,16 +418,22 @@ class ApexStore implements IApexStore {
   }
 
   async getContext(documentUrl: string) {
-    // console.log('getContext', { documentUrl });
+    console.log('getContext', { documentUrl });
 
-    return this.nymph.getEntity(
+    const contextEntity = await this.nymph.getEntity(
       { class: this.SocialContext, skipAc: true },
       { type: '&', equal: ['documentUrl', documentUrl] }
     );
+
+    if (contextEntity) {
+      return await contextEntity.$toJsonContext();
+    }
+
+    return null;
   }
 
   async getUsercount() {
-    // console.log('getUsercount');
+    console.log('getUsercount');
 
     return await this.nymph.getEntities(
       { class: this.User, return: 'count', skipAc: true },
@@ -387,16 +442,19 @@ class ApexStore implements IApexStore {
   }
 
   async saveContext(context: Context) {
-    // console.log('saveContext', context);
+    console.log('saveContext', context);
 
     const contextEntity = await this.SocialContext.factory();
 
-    contextEntity.contextUrl = context.contextUrl;
-    contextEntity.documentUrl = context.documentUrl;
-    contextEntity.document = context.document;
+    contextEntity.$acceptJsonContext(context, true);
 
-    if (!(await contextEntity.$saveSkipAC())) {
-      throw new Error("Couldn't save context.");
+    try {
+      if (!(await contextEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save context.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
     }
   }
 
@@ -405,10 +463,12 @@ class ApexStore implements IApexStore {
    * Return undefined if it has already been saved (the ID exists).
    */
   async saveActivity(activity: APEXActivity | APEXIntransitiveActivity) {
-    // console.log('saveActivity', activity);
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('saveActivity', formattedActivity);
 
     const activityEntity = await this.SocialActivity.factory();
-    await activityEntity.$acceptAPObject(activity, true);
+    await activityEntity.$acceptAPObject(formattedActivity, true);
 
     try {
       return await activityEntity.$saveSkipAC();
@@ -417,6 +477,7 @@ class ApexStore implements IApexStore {
         return undefined;
       }
 
+      console.error('Error:', e);
       throw e;
     }
   }
@@ -425,11 +486,13 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     actorId: string
   ) {
-    // console.log('removeActivity', activity, { actorId });
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('removeActivity', formattedActivity, { actorId });
 
     const activities = await this.nymph.getEntities(
       { class: this.SocialActivity, skipAc: true },
-      { type: '&', equal: ['id', activity.id] },
+      { type: '&', equal: ['id', formattedActivity.id] },
       {
         type: '|',
         equal: ['actor', actorId],
@@ -453,24 +516,33 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     fullReplace: boolean
   ) {
-    // console.log('updateActivity', activity, { fullReplace });
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('updateActivity', formattedActivity, { fullReplace });
 
     const activityEntity = await this.nymph.getEntity(
       { class: this.SocialActivity, skipAc: true },
-      { type: '&', equal: ['id', activity.id] }
+      { type: '&', equal: ['id', formattedActivity.id] }
     );
 
     if (!activityEntity) {
       throw new Error('Activity not found.');
     }
 
-    await activityEntity.$acceptAPObject(activity, fullReplace);
+    await activityEntity.$acceptAPObject(formattedActivity, fullReplace);
 
-    if (!(await activityEntity.$saveSkipAC())) {
-      throw new Error("Couldn't save activity.");
+    try {
+      if (!(await activityEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save activity.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
     }
 
-    return (await activityEntity.$toAPObject(true)) as APEXActivity;
+    return await this.apex.fromJSONLD(
+      (await activityEntity.$toAPObject(true)) as APEXActivity
+    );
   }
 
   /**
@@ -482,7 +554,13 @@ class ApexStore implements IApexStore {
     value: any,
     remove: boolean
   ) {
-    // console.log('updateActivityMeta', activity, { key, value, remove });
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('updateActivityMeta', formattedActivity, {
+      key,
+      value,
+      remove,
+    });
 
     if (key !== 'collection') {
       throw new Error(
@@ -492,7 +570,7 @@ class ApexStore implements IApexStore {
 
     const activityEntity = await this.nymph.getEntity(
       { class: this.SocialActivity, skipAc: true },
-      { type: '&', equal: ['id', activity.id] }
+      { type: '&', equal: ['id', formattedActivity.id] }
     );
 
     if (!activityEntity) {
@@ -526,42 +604,56 @@ class ApexStore implements IApexStore {
       (activityEntity._meta[key] as string[]).push(value);
     }
 
-    if (!(await activityEntity.$saveSkipAC())) {
-      throw new Error("Couldn't save activity.");
+    try {
+      if (!(await activityEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save activity.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
     }
 
-    return (await activityEntity.$toAPObject(true)) as APEXActivity;
+    return await this.apex.fromJSONLD(
+      (await activityEntity.$toAPObject(true)) as APEXActivity
+    );
   }
 
   generateId() {
-    // console.log('generateId');
+    console.log('generateId');
 
     return guid();
   }
 
   async updateObject(
     object: APEXObject,
-    _actorId: string,
+    actorId: string,
     fullReplace: boolean
   ) {
-    // console.log('updateObject', obj, {
-    //   actorId,
-    //   fullReplace,
-    // });
+    const formattedObject = await this.apex.toJSONLD(object);
+
+    console.log('updateObject', formattedObject, {
+      actorId,
+      fullReplace,
+    });
 
     const objectEntity = await this.nymph.getEntity(
       { class: this.SocialObject, skipAc: true },
-      { type: '&', equal: ['id', object.id] }
+      { type: '&', equal: ['id', formattedObject.id] }
     );
 
     if (!objectEntity || !objectEntity.id) {
       throw new Error('Object not found.');
     }
 
-    await objectEntity.$acceptAPObject(object, fullReplace);
+    await objectEntity.$acceptAPObject(formattedObject, fullReplace);
 
-    if (!(await objectEntity.$saveSkipAC())) {
-      throw new Error("Couldn't save object.");
+    try {
+      if (!(await objectEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save object.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
     }
 
     const activitiesWithObject = await this.nymph.getEntities(
@@ -569,7 +661,7 @@ class ApexStore implements IApexStore {
       {
         type: '&',
         contain: [
-          ['object', object.id],
+          ['object', formattedObject.id],
           ['object', 'type'],
         ],
       }
@@ -591,10 +683,17 @@ class ApexStore implements IApexStore {
         activity.object = objectEntity.id;
       }
 
-      await activity.$saveSkipAC();
+      try {
+        await activity.$saveSkipAC();
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
     }
 
-    return (await objectEntity.$toAPObject(true)) as APEXObject;
+    return await this.apex.fromJSONLD(
+      (await objectEntity.$toAPObject(true)) as APEXObject
+    );
   }
 
   /**
@@ -607,7 +706,7 @@ class ApexStore implements IApexStore {
    * If no deliveries exist, return null.
    */
   async deliveryDequeue() {
-    // console.log('deliveryDequeue');
+    console.log('deliveryDequeue');
 
     const delivery = await this.nymph.getEntity(
       { class: this.SocialDelivery, sort: 'after', skipAc: true },
@@ -648,12 +747,12 @@ class ApexStore implements IApexStore {
     addresses: string | string[],
     signingKey: string
   ) {
-    // console.log('deliveryEnqueue', {
-    //   actorId,
-    //   body,
-    //   addresses,
-    //   signingKey,
-    // });
+    console.log('deliveryEnqueue', {
+      actorId,
+      body,
+      addresses,
+      signingKey,
+    });
 
     if (!Array.isArray(addresses)) {
       addresses = [addresses];
@@ -668,7 +767,12 @@ class ApexStore implements IApexStore {
       delivery.attempt = 0;
       delivery.after = new Date().getTime();
 
-      await delivery.$saveSkipAC();
+      try {
+        await delivery.$saveSkipAC();
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
     }
 
     return true;
@@ -678,7 +782,7 @@ class ApexStore implements IApexStore {
    * Insert the delivery back into the DB after updating its `after` prop.
    */
   async deliveryRequeue(delivery: Delivery) {
-    // console.log('deliveryRequeue', delivery);
+    console.log('deliveryRequeue', delivery);
 
     const deliveryEntity = await this.SocialDelivery.factory();
     deliveryEntity.address = delivery.address;
@@ -689,8 +793,13 @@ class ApexStore implements IApexStore {
     deliveryEntity.after =
       delivery.after.getTime() + Math.pow(10, deliveryEntity.attempt);
 
-    if (!(await deliveryEntity.$saveSkipAC())) {
-      throw new Error("Couldn't save delivery.");
+    try {
+      if (!(await deliveryEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save delivery.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
     }
   }
 }

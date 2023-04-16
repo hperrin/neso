@@ -6,7 +6,11 @@ import Joi from 'joi';
 import type { SchemaMap } from 'joi';
 import type { PublicKey, Endpoints, APActor } from '_activitypub';
 
-import { SocialObjectBase, apObjectJoiBuilder } from './SocialObjectBase.js';
+import {
+  SocialObjectBase,
+  apObjectJoiBuilder,
+  apObjectJoi,
+} from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';
 import { socialObjectJoiProps } from './SocialObject.js';
 
@@ -189,21 +193,15 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
     try {
       Joi.attempt(
         this.$getValidatable(),
-        apActorJoiBuilder({
-          ...nymphJoiProps,
-          ...tilmeldJoiProps,
-
-          ...socialObjectJoiProps,
-          ...socialActorJoiProps,
-        }),
+        nymphSocialActorJoi,
         'Invalid SocialActor: '
       );
     } catch (e: any) {
       throw new HttpError(e.message, 400);
     }
 
-    if (JSON.stringify(this.$getValidatable()).length > 50 * 1024) {
-      throw new HttpError('This server has a max of 50KiB for actors.', 413);
+    if (JSON.stringify(this.$getValidatable()).length > 200 * 1024) {
+      throw new HttpError('This server has a max of 200KiB for actors.', 413);
     }
 
     return await super.$save();
@@ -263,28 +261,53 @@ export const apActorEndpointsJoi = Joi.object().keys({
 export const apActorPublicKeyJoi = Joi.object().keys({
   id: Joi.string().uri(),
   owner: Joi.string().uri(),
-  publicKeyPem: Joi.string().max(8192),
+  publicKeyPem: Joi.string(),
 });
 
-export const apActorJoiBuilder = (additionalKeys: SchemaMap<any> = {}) =>
-  apObjectJoiBuilder({
-    inbox: Joi.string().uri().required(),
-    outbox: Joi.string().uri().required(),
-    following: Joi.string().uri(),
-    followers: Joi.string().uri(),
-    liked: Joi.string().uri(),
-    name: Joi.string().max(240),
-    preferredUsername: Joi.string().max(128).trim(false),
-    summary: Joi.string().max(5000),
-    streams: Joi.array().items(Joi.string().uri()),
-    endpoints: apActorEndpointsJoi,
-    publicKey: apActorPublicKeyJoi,
+export const apActorJoiProps = {
+  inbox: Joi.string().uri().required(),
+  outbox: Joi.string().uri().required(),
+  following: Joi.string().uri(),
+  followers: Joi.string().uri(),
+  liked: Joi.string().uri(),
+  name: Joi.string(),
+  preferredUsername: Joi.string().trim(false),
+  summary: Joi.string(),
+  streams: Joi.array().items(Joi.string().uri()),
+  endpoints: apActorEndpointsJoi,
+  publicKey: apActorPublicKeyJoi,
+};
 
-    ...additionalKeys,
-  });
+export const apActorJoiBuilder = (
+  additionalKeys: SchemaMap<any> = {},
+  id: string
+) =>
+  apObjectJoiBuilder(
+    {
+      ...apActorJoiProps,
+      ...additionalKeys,
+    },
+    id
+  );
+
+export const apActorJoi = apActorJoiBuilder({}, 'APActor');
 
 export const socialActorJoiProps = {
   type: Joi.any()
     .valid('Application', 'Group', 'Organization', 'Person', 'Service')
     .required(),
 };
+
+export const nymphSocialActorJoi = apActorJoiBuilder(
+  {
+    ...nymphJoiProps,
+    ...tilmeldJoiProps,
+
+    ...socialObjectJoiProps,
+    ...socialActorJoiProps,
+
+    // This is needed for "APObject" links.
+    __OBJECT: apObjectJoi,
+  },
+  'Root'
+);

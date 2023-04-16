@@ -5,7 +5,11 @@ import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
 import type { APObject } from '_activitypub';
 
-import { SocialObjectBase, apObjectJoiBuilder } from './SocialObjectBase.js';
+import {
+  SocialObjectBase,
+  apObjectJoiBuilder,
+  apObjectJoi,
+} from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';
 
 export type SocialObjectData = SocialObjectBaseData & {
@@ -185,20 +189,15 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
     try {
       Joi.attempt(
         this.$getValidatable(),
-        apObjectJoiBuilder({
-          ...nymphJoiProps,
-          ...tilmeldJoiProps,
-
-          ...socialObjectJoiProps,
-        }),
+        nymphSocialObjectJoi,
         'Invalid SocialObject: '
       );
     } catch (e: any) {
       throw new HttpError(e.message, 400);
     }
 
-    if (JSON.stringify(this.$getValidatable()).length > 50 * 1024) {
-      throw new HttpError('This server has a max of 50KiB for objects.', 413);
+    if (JSON.stringify(this.$getValidatable()).length > 200 * 1024) {
+      throw new HttpError('This server has a max of 200KiB for objects.', 413);
     }
 
     return await super.$save();
@@ -240,10 +239,7 @@ export const socialObjectJoiProps = {
     )
     .required(),
   fullType: Joi.alternatives()
-    .try(
-      Joi.string().max(512).trim(false),
-      Joi.array().items(Joi.string().max(512).trim(false))
-    )
+    .try(Joi.string().trim(false), Joi.array().items(Joi.string().trim(false)))
     .required(),
 
   endTime: Joi.number(),
@@ -253,3 +249,16 @@ export const socialObjectJoiProps = {
 
   _meta: Joi.object(),
 };
+
+export const nymphSocialObjectJoi = apObjectJoiBuilder(
+  {
+    ...nymphJoiProps,
+    ...tilmeldJoiProps,
+
+    ...socialObjectJoiProps,
+
+    // This is needed for "APObject" links.
+    __OBJECT: apObjectJoi,
+  },
+  'Root'
+);

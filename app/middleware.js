@@ -111,6 +111,30 @@ nesoMiddleware.get(
 nesoMiddleware.get('/nodeinfo/:version', apexRunner(apex.net.nodeInfo.get));
 nesoMiddleware.post('/proxy', apexRunner(apex.net.proxy.post));
 
+for (const path in [
+  AP_ROUTES.inbox,
+  AP_ROUTES.outbox,
+  AP_ROUTES.actor,
+  AP_ROUTES.followers,
+  AP_ROUTES.following,
+  AP_ROUTES.liked,
+  AP_ROUTES.object,
+  AP_ROUTES.activity,
+  AP_ROUTES.shares,
+  AP_ROUTES.likes,
+  '/.well-known/webfinger',
+  '/.well-known/nodeinfo',
+  '/nodeinfo/:version',
+  '/proxy',
+]) {
+  nesoMiddleware.use(path, (req, res, next) => {
+    if (!res.headersSent) {
+      res.status(500);
+      res.send({ message: 'Unknown error.' });
+    }
+  });
+}
+
 // list of valid scopes
 const VALID_SCOPES = ['read', 'write', 'follow'];
 
