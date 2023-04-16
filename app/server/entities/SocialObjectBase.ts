@@ -114,11 +114,16 @@ export class SocialObjectBase<
     }
   }
 
-  async $convertToAPObject(object: any) {
-    if ('$toAPObject' in object) {
-      return object.$toAPObject();
+  async $convertToAPObject<T = any>(object: T): Promise<T | any> {
+    if (
+      typeof object === 'object' &&
+      object &&
+      '$toAPObject' in object &&
+      typeof object.$toAPObject === 'function'
+    ) {
+      return await object.$toAPObject();
     } else if (Array.isArray(object)) {
-      return object.map(this.$convertToAPObject.bind(this));
+      return await Promise.all(object.map(this.$convertToAPObject.bind(this)));
     } else {
       return object;
     }

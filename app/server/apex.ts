@@ -484,6 +484,12 @@ class ApexStore implements IApexStore {
   ) {
     // console.log('updateActivityMeta', activity, { key, value, remove });
 
+    if (key !== 'collection') {
+      throw new Error(
+        'APEX has started using another Activity meta key than "collection"! This is an issue.'
+      );
+    }
+
     const activityEntity = await this.nymph.getEntity(
       { class: this.SocialActivity, skipAc: true },
       { type: '&', equal: ['id', activity.id] }
@@ -496,9 +502,9 @@ class ApexStore implements IApexStore {
     if (remove) {
       if (activityEntity._meta && key in activityEntity._meta) {
         if (Array.isArray(activityEntity._meta[key])) {
-          const idx = activityEntity._meta[key].indexOf(value);
+          const idx = (activityEntity._meta[key] as string[]).indexOf(value);
           if (idx !== -1) {
-            activityEntity._meta[key].splice(idx);
+            (activityEntity._meta[key] as string[]).splice(idx);
           }
         } else {
           delete activityEntity._meta[key];
@@ -512,10 +518,12 @@ class ApexStore implements IApexStore {
       if (!(key in activityEntity._meta)) {
         activityEntity._meta[key] = [];
       } else if (typeof activityEntity._meta[key] === 'string') {
-        activityEntity._meta[key] = [activityEntity._meta[key]];
+        activityEntity._meta[key] = [
+          activityEntity._meta[key] as unknown as string,
+        ];
       }
 
-      activityEntity._meta[key].push(value);
+      (activityEntity._meta[key] as string[]).push(value);
     }
 
     if (!(await activityEntity.$saveSkipAC())) {
