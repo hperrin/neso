@@ -19,12 +19,8 @@ import { MySQLDriver } from '@nymphjs/driver-mysql';
 import { SQLite3Driver } from '@nymphjs/driver-sqlite3';
 
 import handleOnboarding from './utils/handleOnboarding.js';
-import { Project as ProjectClass } from './entities/Project.js';
-import type { ProjectData } from './entities/Project.js';
 import { Settings as SettingsClass } from './entities/Settings.js';
 import type { SettingsData } from './entities/Settings.js';
-import { Todo as TodoClass } from './entities/Todo.js';
-import type { TodoData } from './entities/Todo.js';
 import { AuthClient as AuthClientClass } from './entities/AuthClient.js';
 import type { AuthClientData } from './entities/AuthClient.js';
 import { AuthCode as AuthCodeClass } from './entities/AuthCode.js';
@@ -63,12 +59,8 @@ const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD;
 const MYSQL_CA_CERT = process.env.MYSQL_CA_CERT;
 
 export type {
-  ProjectClass,
-  ProjectData,
   SettingsClass,
   SettingsData,
-  TodoClass,
-  TodoData,
   AuthClientClass,
   AuthClientData,
   AuthCodeClass,
@@ -94,9 +86,7 @@ export type NymphInstance = {
   tilmeld: Tilmeld;
   User: typeof UserClass;
   Group: typeof GroupClass;
-  Project: typeof ProjectClass;
   Settings: typeof SettingsClass;
-  Todo: typeof TodoClass;
   AuthClient: typeof AuthClientClass;
   AuthCode: typeof AuthCodeClass;
   AuthToken: typeof AuthTokenClass;
@@ -153,9 +143,7 @@ export function getNymphInstance({
   let driver: NymphDriver = null as unknown as NymphDriver;
   let User = UserClass;
   let Group = GroupClass;
-  let Project = ProjectClass;
   let Settings = SettingsClass;
-  let Todo = TodoClass;
   let AuthClient = AuthClientClass;
   let AuthCode = AuthCodeClass;
   let AuthToken = AuthTokenClass;
@@ -220,9 +208,7 @@ export function getNymphInstance({
       nymph
     );
 
-    Project = nymph.addEntityClass(ProjectClass);
     Settings = nymph.addEntityClass(SettingsClass);
-    Todo = nymph.addEntityClass(TodoClass);
     AuthClient = nymph.addEntityClass(AuthClientClass);
     AuthCode = nymph.addEntityClass(AuthCodeClass);
     AuthToken = nymph.addEntityClass(AuthTokenClass);
@@ -256,9 +242,7 @@ export function getNymphInstance({
     tilmeld,
     User,
     Group,
-    Project,
     Settings,
-    Todo,
     AuthClient,
     AuthCode,
     AuthToken,

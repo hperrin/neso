@@ -1,41 +1,83 @@
+import { generateKeyPair } from 'node:crypto';
 import type { User, UserData } from '@nymphjs/tilmeld';
+import type { APEXActor } from 'activitypub-express';
 
-import type { Project as ProjectClass } from '../entities/Project.js';
-import type { Todo as TodoClass } from '../entities/Todo.js';
+import {
+  AP_USER_ID_PREFIX,
+  AP_USER_INBOX_PREFIX,
+  AP_USER_OUTBOX_PREFIX,
+  AP_USER_FOLLOWERS_PREFIX,
+  AP_USER_FOLLOWING_PREFIX,
+  AP_USER_LIKED_PREFIX,
+} from '../utils/constants.js';
+
+import type { SocialActor as SocialActorClass } from '../entities/SocialActor.js';
 
 export default async function handleOnboarding(user: User & UserData) {
   const nymph = user.$nymph.clone();
 
-  const Project = nymph.getEntityClass('Project') as typeof ProjectClass;
-  const Todo = nymph.getEntityClass('Todo') as typeof TodoClass;
+  const SocialActor = nymph.getEntityClass(
+    'SocialActor'
+  ) as typeof SocialActorClass;
 
-  // Create a new Project.
-  let project = Project.factorySync();
-  project.name = 'My Tasks';
-  project.done = false;
-  await project.$save();
+  const actor = await SocialActor.factory();
 
-  let projectImportant = Project.factorySync();
-  projectImportant.name = 'Important';
-  projectImportant.done = false;
-  projectImportant.parent = project;
-  await projectImportant.$save();
+  actor.$acceptAPObject(
+    {
+      type: 'Person',
+      id: `${AP_USER_ID_PREFIX}${user.username}`,
+      name: user.name,
+      preferredUsername: user.username,
+      inbox: `${AP_USER_INBOX_PREFIX}${user.username}`,
+      outbox: `${AP_USER_OUTBOX_PREFIX}${user.username}`,
+      followers: `${AP_USER_FOLLOWERS_PREFIX}${user.username}`,
+      following: `${AP_USER_FOLLOWING_PREFIX}${user.username}`,
+      liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
+    } as APEXActor,
+    true
+  );
 
-  let projectOngoing = Project.factorySync();
-  projectOngoing.name = 'Ongoing';
-  projectOngoing.done = false;
-  projectOngoing.parent = project;
-  await projectOngoing.$save();
+  // Create a key pair.
+  const [publicKey, privateKey] = await new Promise<[string, string]>(
+    (resolve, reject) =>
+      generateKeyPair(
+        'rsa',
+        {
+          modulusLength: 4096,
+          publicKeyEncoding: {
+            type: 'spki',
+            format: 'pem',
+          },
+          privateKeyEncoding: {
+            type: 'pkcs8',
+            format: 'pem',
+          },
+        },
+        (error, publicKey, privateKey) => {
+          if (error) {
+            reject(error);
+          }
+          resolve([publicKey, privateKey]);
+        }
+      )
+  );
 
-  let todoImportant = Todo.factorySync();
-  todoImportant.text = 'Build an awesome social network app with SvelteKit!';
-  todoImportant.done = false;
-  todoImportant.project = projectImportant;
-  await todoImportant.$save();
+  actor.user = user;
+  actor.publicKey = {
+    id: `${AP_USER_ID_PREFIX}${user.username}#main-key`,
+    owner: `${AP_USER_ID_PREFIX}${user.username}`,
+    publicKeyPem: publicKey,
+  };
+  actor._meta = {
+    privateKey,
+  };
 
-  let todoOngoing = Todo.factorySync();
-  todoOngoing.text = 'Be awesome!';
-  todoOngoing.done = false;
-  todoOngoing.project = projectOngoing;
-  await todoOngoing.$save();
+  try {
+    if (!(await actor.$saveSkipAC())) {
+      throw new Error("Couldn't create actor for user.");
+    }
+  } catch (e) {
+    console.error('Error:', e);
+    throw e;
+  }
 }

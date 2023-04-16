@@ -8,12 +8,8 @@ import {
 import websocket from 'websocket';
 import type { Stores } from '$lib/stores';
 import stores from '$lib/stores';
-import { Project as ProjectClass } from '$lib/entities/Project.js';
-import type { ProjectData } from '$lib/entities/Project.js';
 import { Settings as SettingsClass } from '$lib/entities/Settings.js';
 import type { SettingsData } from '$lib/entities/Settings.js';
-import { Todo as TodoClass } from '$lib/entities/Todo.js';
-import type { TodoData } from '$lib/entities/Todo.js';
 import { AuthClient as AuthClientClass } from '$lib/entities/AuthClient.js';
 import type { AuthClientData } from '$lib/entities/AuthClient.js';
 import { SocialActivity as SocialActivityClass } from '$lib/entities/SocialActivity.js';
@@ -29,9 +25,7 @@ export type SessionStuff = {
   stores: Stores;
   User: typeof UserClass;
   Group: typeof GroupClass;
-  Project: typeof ProjectClass;
   Settings: typeof SettingsClass;
-  Todo: typeof TodoClass;
   AuthClient: typeof AuthClientClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
@@ -75,9 +69,7 @@ export const nymphBuilder = (
   const User = nymph.addEntityClass(UserClass);
   User.init(nymph);
   const Group = nymph.addEntityClass(GroupClass);
-  const Project = nymph.addEntityClass(ProjectClass);
   const Settings = nymph.addEntityClass(SettingsClass);
-  const Todo = nymph.addEntityClass(TodoClass);
   const AuthClient = nymph.addEntityClass(AuthClientClass);
   const SocialActivity = nymph.addEntityClass(SocialActivityClass);
   const SocialActor = nymph.addEntityClass(SocialActorClass);
@@ -92,9 +84,7 @@ export const nymphBuilder = (
       pubsub,
       User,
       Group,
-      Project,
       Settings,
-      Todo,
       AuthClient,
       SocialActivity,
       SocialActor,
@@ -107,9 +97,7 @@ export const nymphBuilder = (
     pubsub,
     User,
     Group,
-    Project,
     Settings,
-    Todo,
     AuthClient,
     SocialActivity,
     SocialActor,
@@ -129,22 +117,19 @@ export let buildSessionStuff = (
     pubsub,
     User,
     Group,
-    Project,
     Settings,
-    Todo,
     AuthClient,
     SocialActivity,
     SocialActor,
     SocialObject,
   } = nymphBuilder(fetch, browser, DOMAIN, !!SECURE);
-  const myStores = stores({ pubsub, Project, Settings });
+  const myStores = stores({ pubsub, Settings });
   const {
     user,
     clientConfig,
     readyPromiseResolve,
     readyPromiseReject,
     settingsReadyPromise,
-    projectsReadyPromise,
   } = myStores;
 
   if (tokens.xsrfToken && tokens.token) {
@@ -168,10 +153,7 @@ export let buildSessionStuff = (
   readyNecessaryPromises.push(
     User.current().then((currentUser) => {
       user.set(currentUser);
-      return Promise.all([
-        get(settingsReadyPromise),
-        get(projectsReadyPromise),
-      ]);
+      return Promise.all([get(settingsReadyPromise)]);
     }, readyPromiseReject)
   );
   Promise.all(readyNecessaryPromises).then(() => readyPromiseResolve());
@@ -182,9 +164,7 @@ export let buildSessionStuff = (
     stores: myStores,
     User,
     Group,
-    Project,
     Settings,
-    Todo,
     AuthClient,
     SocialActivity,
     SocialActor,
@@ -195,12 +175,8 @@ export let buildSessionStuff = (
 export type {
   UserClass,
   GroupClass,
-  ProjectClass,
-  ProjectData,
   SettingsClass,
   SettingsData,
-  TodoClass,
-  TodoData,
   AuthClientClass,
   AuthClientData,
   SocialActivityClass,

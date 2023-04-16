@@ -38,8 +38,8 @@
   import type { PageData } from './$types';
 
   export let data: PageData;
-  let { pubsub, nymph, stores, subscribable, searchResults } = data;
-  $: ({ pubsub, nymph, stores, subscribable, searchResults } = data);
+  let { searchResults } = data;
+  $: ({ searchResults } = data);
   // let { loading } = stores;
   // $: ({ loading } = stores);
 

@@ -1,13 +1,10 @@
 import type { ClientConfig, CurrentUserData } from '@nymphjs/tilmeld-client';
-import type { PubSubSubscription, PubSubUpdate } from '@nymphjs/client';
-import { Sorter } from '@nymphjs/sorter';
+import type { PubSubSubscription } from '@nymphjs/client';
 import type { Writable } from 'svelte/store';
-import { get, writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type {
   SessionStuff,
   UserClass,
-  ProjectClass,
-  ProjectData,
   SettingsClass,
   SettingsData,
 } from '$lib/nymph';
@@ -23,8 +20,6 @@ export type Stores = {
   userAvatar: Writable<string>;
   tilmeldAdmin: Writable<boolean | undefined>;
   systemAdmin: Writable<boolean | undefined>;
-  projectsReadyPromise: Writable<Promise<void>>;
-  projects: Writable<(ProjectClass & ProjectData)[]>;
   search: Writable<string>;
   loading: Writable<boolean>;
   smallWindow: Writable<boolean>;
@@ -33,9 +28,9 @@ export type Stores = {
 };
 
 export default function stores(
-  stuff: Pick<SessionStuff, 'pubsub' | 'Project' | 'Settings'>
+  stuff: Pick<SessionStuff, 'pubsub' | 'Settings'>
 ): Stores {
-  const { pubsub, Project, Settings } = stuff;
+  const { pubsub, Settings } = stuff;
 
   let readyPromiseResolve: () => void;
   let readyPromiseReject: (reason?: any) => void;
@@ -80,22 +75,6 @@ export default function stores(
 
   const search = writable<string>('');
 
-  // Projects Related
-
-  let projectsReadyPromiseResolve: () => void;
-  let projectsReadyPromiseReject: (reason?: any) => void;
-  const projectsReadyPromise = writable<Promise<void>>(
-    new Promise<void>((resolve, reject) => {
-      projectsReadyPromiseResolve = resolve;
-      projectsReadyPromiseReject = reject;
-    })
-  );
-  const projects = writable<(ProjectClass & ProjectData)[]>([]);
-
-  let projectSubscription: PubSubSubscription<
-    PubSubUpdate<(ProjectClass & ProjectData)[]>
-  > | null = null;
-
   // Global
 
   const loading = writable<boolean>(false);
@@ -114,12 +93,6 @@ export default function stores(
         new Promise<void>((resolve, reject) => {
           settingsReadyPromiseResolve = resolve;
           settingsReadyPromiseReject = reject;
-        })
-      );
-      projectsReadyPromise.set(
-        new Promise<void>((resolve, reject) => {
-          projectsReadyPromiseResolve = resolve;
-          projectsReadyPromiseReject = reject;
         })
       );
 
@@ -146,56 +119,11 @@ export default function stores(
       userValue.$getAvatar().then((value) => {
         userAvatar.set(value);
       });
-
-      if (!projectSubscription) {
-        projectSubscription = pubsub.subscribeEntities(
-          {
-            class: Project,
-          },
-          { type: '&', '!truthy': 'done' }
-        )(async (update) => {
-          let projectArray = get(projects);
-          pubsub.updateArray(projectArray, update);
-          // Load the projects' parents.
-          await Promise.all(
-            projectArray
-              .map((project) => project.parent && project.parent.$ready())
-              .filter((promise) => !!promise)
-          );
-          // Calculate the projects' levels.
-          projectArray.forEach((project) => {
-            let parent: (ProjectClass & ProjectData) | undefined = project;
-
-            project.$level = -1;
-            do {
-              project.$level++;
-              parent = parent.parent
-                ? projectArray.find(
-                    (project) => parent && project.$is(parent.parent)
-                  )
-                : undefined;
-            } while (parent);
-          });
-          const sorter = new Sorter(projectArray);
-          sorter.hsort('name', 'parent', {
-            collatorOptions: { numeric: true },
-          });
-          projects.set(projectArray);
-
-          projectsReadyPromiseResolve();
-        }, projectsReadyPromiseReject);
-      }
     } else if (!userValue && (previousUser || firstStart)) {
       settingsReadyPromise.set(
         new Promise<void>((resolve, reject) => {
           settingsReadyPromiseResolve = resolve;
           settingsReadyPromiseReject = reject;
-        })
-      );
-      projectsReadyPromise.set(
-        new Promise<void>((resolve, reject) => {
-          projectsReadyPromiseResolve = resolve;
-          projectsReadyPromiseReject = reject;
         })
       );
 
@@ -208,17 +136,10 @@ export default function stores(
         userSubscription = null;
       }
 
-      if (projectSubscription) {
-        projectSubscription.unsubscribe();
-        projectSubscription = null;
-      }
-
       settings.set(Settings.factorySync());
-      projects.set([]);
       search.set('');
 
       settingsReadyPromiseResolve();
-      projectsReadyPromiseResolve();
 
       // As a last resort for the bug where logging out then logging in causes
       // strange issues, refresh the page on log out.
@@ -246,8 +167,6 @@ export default function stores(
     userAvatar,
     tilmeldAdmin,
     systemAdmin,
-    projectsReadyPromise,
-    projects,
     search,
     loading,
     smallWindow,
