@@ -62,6 +62,8 @@ export type SocialActivityData = SocialObjectBaseData & {
     | string
     | boolean
     | (APObject | APLink | string | boolean)[];
+
+  _meta?: { collection?: string[] };
 };
 
 export class SocialActivity extends SocialObjectBase<SocialActivityData> {

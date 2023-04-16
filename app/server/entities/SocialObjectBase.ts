@@ -48,8 +48,6 @@ export type SocialObjectBaseData = {
   source?: { content: string; mediaType: string };
   likes?: APLink | APCollection;
   shares?: APLink | APCollection;
-
-  _meta?: { collection?: string[] };
 } & AccessControlData;
 
 export class SocialObjectBase<

@@ -15,19 +15,10 @@ import type {
 import ActivitypubExpress from 'activitypub-express';
 
 import { SocialContext as SocialContextClass } from './entities/SocialContext.js';
-import type { SocialContextData } from './entities/SocialContext.js';
 import { SocialDelivery as SocialDeliveryClass } from './entities/SocialDelivery.js';
-import type { SocialDeliveryData } from './entities/SocialDelivery.js';
 import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
-import type { SocialActivityData } from './entities/SocialActivity.js';
 import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
-import type { SocialActorData } from './entities/SocialActor.js';
-import { SocialCollection as SocialCollectionClass } from './entities/SocialCollection.js';
-import type { SocialCollectionData } from './entities/SocialCollection.js';
-import { SocialCollectionEntry as SocialCollectionEntryClass } from './entities/SocialCollectionEntry.js';
-import type { SocialCollectionEntryData } from './entities/SocialCollectionEntry.js';
 import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
-import type { SocialObjectData } from './entities/SocialObject.js';
 
 import { DOMAIN, ADDRESS } from './nymph.js';
 import {
@@ -71,8 +62,6 @@ class ApexStore implements IApexStore {
   SocialDelivery: typeof SocialDeliveryClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
-  SocialCollection: typeof SocialCollectionClass;
-  SocialCollectionEntry: typeof SocialCollectionEntryClass;
   SocialObject: typeof SocialObjectClass;
 
   constructor(nymph: Nymph) {
@@ -90,12 +79,6 @@ class ApexStore implements IApexStore {
     this.SocialActor = nymph.getEntityClass(
       SocialActorClass.class
     ) as typeof SocialActorClass;
-    this.SocialCollection = nymph.getEntityClass(
-      SocialCollectionClass.class
-    ) as typeof SocialCollectionClass;
-    this.SocialCollectionEntry = nymph.getEntityClass(
-      SocialCollectionEntryClass.class
-    ) as typeof SocialCollectionEntryClass;
     this.SocialObject = nymph.getEntityClass(
       SocialObjectClass.class
     ) as typeof SocialObjectClass;
@@ -239,40 +222,26 @@ class ApexStore implements IApexStore {
     // });
 
     const entity = await this.nymph.getEntity(
-      { class: this.SocialCollectionEntry },
+      { class: this.SocialActivity },
       {
         type: '&',
+        contain: ['_meta', collection],
+      },
+      {
+        type: '|',
+        equal: ['object', objectId],
+        contain: ['object', objectId],
         qref: [
+          'object',
           [
-            'collection',
-            [
-              { class: this.SocialCollection },
-              { type: '&', equal: ['id', collection] },
-            ],
-          ],
-          [
-            'entry',
-            [
-              { class: this.SocialActivity },
-              {
-                type: '|',
-                equal: ['object', objectId],
-                contain: ['object', objectId],
-                qref: [
-                  'object',
-                  [
-                    { class: this.SocialObject },
-                    { type: '&', equal: ['id', objectId] },
-                  ],
-                ],
-              },
-            ],
+            { class: this.SocialObject },
+            { type: '&', equal: ['id', objectId] },
           ],
         ],
       }
     );
     if (entity) {
-      return (await entity.entry.$toAPObject(includeMeta)) as APEXActivity;
+      return (await entity.$toAPObject(includeMeta)) as APEXActivity;
     }
     return null;
   }
@@ -289,40 +258,23 @@ class ApexStore implements IApexStore {
     // });
 
     const entity = await this.nymph.getEntity(
-      { class: this.SocialCollectionEntry },
+      { class: this.SocialActivity },
       {
         type: '&',
+        contain: ['_meta', collection],
+      },
+      {
+        type: '|',
+        equal: ['actor', actorId],
+        contain: ['actor', actorId],
         qref: [
-          [
-            'collection',
-            [
-              { class: this.SocialCollection },
-              { type: '&', equal: ['id', collection] },
-            ],
-          ],
-          [
-            'entry',
-            [
-              { class: this.SocialActivity },
-              {
-                type: '|',
-                equal: ['actor', actorId],
-                contain: ['actor', actorId],
-                qref: [
-                  'actor',
-                  [
-                    { class: this.SocialActor },
-                    { type: '&', equal: ['id', actorId] },
-                  ],
-                ],
-              },
-            ],
-          ],
+          'actor',
+          [{ class: this.SocialActor }, { type: '&', equal: ['id', actorId] }],
         ],
       }
     );
     if (entity) {
-      return (await entity.entry.$toAPObject(includeMeta)) as APEXActivity;
+      return (await entity.$toAPObject(includeMeta)) as APEXActivity;
     }
     return null;
   }
@@ -350,39 +302,21 @@ class ApexStore implements IApexStore {
     //   query,
     // });
 
-    let afterEntry:
-      | (SocialCollectionEntryClass & SocialCollectionEntryData)
-      | null = null;
-    if (after) {
-      let afterEntity: SocialActivityClass & SocialActivityData;
-      afterEntity = await this.SocialActivity.factoryId(after);
-
-      if (afterEntity.guid != null) {
-        afterEntry = await this.nymph.getEntity(
-          { class: this.SocialCollectionEntry },
-          { type: '&', ref: ['entry', afterEntity] }
-        );
-      }
+    let afterEntry = after ? await this.SocialActivity.factoryId(after) : null;
+    if (afterEntry && afterEntry.guid == null) {
+      throw new Error("Couldn't find last activity.");
     }
 
     const entries = await this.nymph.getEntities(
       {
-        class: this.SocialCollectionEntry,
+        class: this.SocialActivity,
         sort: 'cdate',
         reverse: true,
         ...(limit != null ? { limit } : {}),
       },
       {
         type: '&',
-        qref: [
-          [
-            'collection',
-            [
-              { class: this.SocialCollection },
-              { type: '&', equal: ['id', collectionId] },
-            ],
-          ],
-        ],
+        contain: ['_meta', collectionId],
         ...(afterEntry != null && afterEntry.guid != null
           ? {
               lte: ['cdate', afterEntry.cdate || 0],
@@ -394,36 +328,25 @@ class ApexStore implements IApexStore {
         ? [
             {
               type: '!&',
-              qref: [
-                [
-                  'entry',
+              equal: blockList.map(
+                (actor) => ['actor', actor] as [string, string]
+              ),
+              contain: blockList.map(
+                (actor) => ['actor', actor] as [string, string]
+              ),
+              qref: blockList.map(
+                (actor) =>
                   [
-                    { class: this.SocialActivity },
-                    {
-                      type: '|',
-                      equal: blockList.map(
-                        (actor) => ['actor', actor] as [string, string]
-                      ),
-                      contain: blockList.map(
-                        (actor) => ['actor', actor] as [string, string]
-                      ),
-                      qref: blockList.map(
-                        (actor) =>
-                          [
-                            'actor',
-                            [
-                              { class: this.SocialActor },
-                              {
-                                type: '&',
-                                equal: ['id', actor],
-                              },
-                            ],
-                          ] as [string, [Options, ...Selector[]]]
-                      ),
-                    },
-                  ],
-                ],
-              ],
+                    'actor',
+                    [
+                      { class: this.SocialActor },
+                      {
+                        type: '&',
+                        equal: ['id', actor],
+                      },
+                    ],
+                  ] as [string, [Options, ...Selector[]]]
+              ),
             } as Selector,
           ]
         : [])
@@ -437,18 +360,10 @@ class ApexStore implements IApexStore {
   async getStreamCount(collectionId: string) {
     // console.log('getStreamCount', { collectionId });
     return await this.nymph.getEntities(
-      { class: this.SocialCollectionEntry, return: 'count' },
+      { class: this.SocialActivity, return: 'count' },
       {
         type: '&',
-        qref: [
-          [
-            'collection',
-            [
-              { class: this.SocialCollection },
-              { type: '&', equal: ['id', collectionId] },
-            ],
-          ],
-        ],
+        contain: ['_meta', collectionId],
       }
     );
   }
@@ -526,19 +441,7 @@ class ApexStore implements IApexStore {
       }
     );
 
-    activityLoop: for (let activityEntity of activities) {
-      // Find all the entries for this activity.
-      const entries = await this.nymph.getEntities(
-        { class: this.SocialCollectionEntry, skipAc: true },
-        { type: '&', ref: ['entry', activityEntity] }
-      );
-
-      for (let entry of entries) {
-        if (!(await entry.$deleteSkipAC())) {
-          continue activityLoop;
-        }
-      }
-
+    for (let activityEntity of activities) {
       await activityEntity.$delete();
     }
   }

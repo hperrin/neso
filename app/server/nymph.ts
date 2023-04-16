@@ -39,10 +39,6 @@ import { SocialActivity as SocialActivityClass } from './entities/SocialActivity
 import type { SocialActivityData } from './entities/SocialActivity.js';
 import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
 import type { SocialActorData } from './entities/SocialActor.js';
-import { SocialCollection as SocialCollectionClass } from './entities/SocialCollection.js';
-import type { SocialCollectionData } from './entities/SocialCollection.js';
-import { SocialCollectionEntry as SocialCollectionEntryClass } from './entities/SocialCollectionEntry.js';
-import type { SocialCollectionEntryData } from './entities/SocialCollectionEntry.js';
 import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
 import type { SocialObjectData } from './entities/SocialObject.js';
 import { SocialObjectBase as SocialObjectBaseClass } from './entities/SocialObjectBase.js';
@@ -87,10 +83,6 @@ export type {
   SocialActivityData,
   SocialActorClass,
   SocialActorData,
-  SocialCollectionClass,
-  SocialCollectionData,
-  SocialCollectionEntryClass,
-  SocialCollectionEntryData,
   SocialObjectClass,
   SocialObjectData,
   SocialObjectBaseClass,
@@ -112,8 +104,6 @@ export type NymphInstance = {
   SocialDelivery: typeof SocialDeliveryClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
-  SocialCollection: typeof SocialCollectionClass;
-  SocialCollectionEntry: typeof SocialCollectionEntryClass;
   SocialObject: typeof SocialObjectClass;
   SocialObjectBase: typeof SocialObjectBaseClass;
   restMiddleware: Express;
@@ -173,8 +163,6 @@ export function getNymphInstance({
   let SocialDelivery = SocialDeliveryClass;
   let SocialActivity = SocialActivityClass;
   let SocialActor = SocialActorClass;
-  let SocialCollection = SocialCollectionClass;
-  let SocialCollectionEntry = SocialCollectionEntryClass;
   let SocialObject = SocialObjectClass;
   let SocialObjectBase = SocialObjectBaseClass;
   let restMiddleware: Express = express();
@@ -242,8 +230,6 @@ export function getNymphInstance({
     SocialDelivery = nymph.addEntityClass(SocialDeliveryClass);
     SocialActivity = nymph.addEntityClass(SocialActivityClass);
     SocialActor = nymph.addEntityClass(SocialActorClass);
-    SocialCollection = nymph.addEntityClass(SocialCollectionClass);
-    SocialCollectionEntry = nymph.addEntityClass(SocialCollectionEntryClass);
     SocialObject = nymph.addEntityClass(SocialObjectClass);
     SocialObjectBase = nymph.addEntityClass(SocialObjectBaseClass);
 
@@ -280,8 +266,6 @@ export function getNymphInstance({
     SocialDelivery,
     SocialActivity,
     SocialActor,
-    SocialCollection,
-    SocialCollectionEntry,
     SocialObject,
     SocialObjectBase,
     restMiddleware,
