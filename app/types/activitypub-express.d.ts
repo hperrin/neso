@@ -136,7 +136,7 @@ declare module 'activitypub-express' {
       obj: APEXObject,
       actorId: string,
       fullReplace: boolean
-    ): Promise<any>;
+    ): Promise<APEXObject>;
 
     /**
      * Find the first deliver where `after` is less than `new Date()`, delete

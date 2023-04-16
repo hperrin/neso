@@ -23,6 +23,8 @@ export type SocialActorData = SocialObjectBaseData & {
   streams?: string[];
   endpoints?: Endpoints | string;
   publicKey?: PublicKey;
+
+  _meta?: { privateKey?: string; collection?: string[] };
 };
 
 export class SocialActor extends SocialObjectBase<SocialActorData> {

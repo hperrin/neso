@@ -1,5 +1,7 @@
+import { generateKeyPair } from 'node:crypto';
 import type { Nymph, Options, Selector } from '@nymphjs/nymph';
 import { guid } from '@nymphjs/guid';
+import { HttpError } from '@nymphjs/server';
 import { User as UserClass } from '@nymphjs/tilmeld';
 import type {
   IApexStore,
@@ -27,6 +29,7 @@ import type { SocialCollectionEntryData } from './entities/SocialCollectionEntry
 import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
 import type { SocialObjectData } from './entities/SocialObject.js';
 
+import { DOMAIN, ADDRESS } from './nymph.js';
 import {
   AP_ROUTES,
   AP_USER_ID_PREFIX,
@@ -43,20 +46,20 @@ export function buildApex(nymph: Nymph) {
 
   return ActivitypubExpress({
     name: 'Neso',
-    version: process.env.npm_package_version,
+    version: '1.0.0',
     openRegistrations: false,
     nodeInfoMetadata: {},
-    baseUrl: 'http://127.0.0.1:5173',
-    domain: '127.0.0.1',
+    baseUrl: ADDRESS,
+    domain: DOMAIN,
     actorParam: 'actor',
     objectParam: 'id',
     activityParam: 'id',
     routes: AP_ROUTES,
     store,
     endpoints: {
-      uploadMedia: 'https://localhost/upload',
-      oauthAuthorizationEndpoint: 'https://localhost/oauth/authorize',
-      proxyUrl: 'https://localhost/proxy',
+      uploadMedia: `${ADDRESS}/upload`,
+      oauthAuthorizationEndpoint: `${ADDRESS}/oauth/authorize`,
+      proxyUrl: `${ADDRESS}/proxy`,
     },
   });
 }
@@ -99,8 +102,7 @@ class ApexStore implements IApexStore {
   }
 
   async setup(_optionalActor: APEXActor) {
-    // TODO
-    console.log('setup');
+    // console.log('setup');
   }
 
   async getObject(id: string, includeMeta: boolean) {
@@ -135,7 +137,40 @@ class ApexStore implements IApexStore {
         true
       );
 
+      // Create a key pair.
+      const [publicKey, privateKey] = await new Promise<[string, string]>(
+        (resolve, reject) =>
+          generateKeyPair(
+            'rsa',
+            {
+              modulusLength: 4096,
+              publicKeyEncoding: {
+                type: 'spki',
+                format: 'pem',
+              },
+              privateKeyEncoding: {
+                type: 'pkcs8',
+                format: 'pem',
+              },
+            },
+            (error, publicKey, privateKey) => {
+              if (error) {
+                reject(error);
+              }
+              resolve([publicKey, privateKey]);
+            }
+          )
+      );
+
       actor.user = user;
+      actor.publicKey = {
+        id: `${AP_USER_ID_PREFIX}${user.username}#main-key`,
+        owner: `${AP_USER_ID_PREFIX}${user.username}`,
+        publicKeyPem: publicKey,
+      };
+      actor._meta = {
+        privateKey,
+      };
 
       if (!(await actor.$saveSkipAC())) {
         throw new Error("Couldn't create actor for user.");
@@ -455,18 +490,57 @@ class ApexStore implements IApexStore {
    * Return undefined if it has already been saved (the ID exists).
    */
   async saveActivity(activity: APEXActivity | APEXIntransitiveActivity) {
-    // TODO
-    console.log('saveActivity', activity);
-    return true;
+    // console.log('saveActivity', activity);
+
+    const activityEntity = await this.SocialActivity.factory();
+    await activityEntity.$acceptAPObject(activity, true);
+
+    try {
+      return await activityEntity.$saveSkipAC();
+    } catch (e: any) {
+      if (e instanceof HttpError && e.status === 409) {
+        return undefined;
+      }
+
+      throw e;
+    }
   }
 
   async removeActivity(
     activity: APEXActivity | APEXIntransitiveActivity,
     actorId: string
   ) {
-    // TODO
-    console.log('removeActivity', activity, { actorId });
-    return [];
+    // console.log('removeActivity', activity, { actorId });
+
+    const activities = await this.nymph.getEntities(
+      { class: this.SocialActivity, skipAc: true },
+      { type: '&', equal: ['id', activity.id] },
+      {
+        type: '|',
+        equal: ['actor', actorId],
+        contain: ['actor', actorId],
+        qref: [
+          'actor',
+          [{ class: this.SocialActor }, { type: '&', equal: ['id', actorId] }],
+        ],
+      }
+    );
+
+    activityLoop: for (let activityEntity of activities) {
+      // Find all the entries for this activity.
+      const entries = await this.nymph.getEntities(
+        { class: this.SocialCollectionEntry, skipAc: true },
+        { type: '&', ref: ['entry', activityEntity] }
+      );
+
+      for (let entry of entries) {
+        if (!(await entry.$deleteSkipAC())) {
+          continue activityLoop;
+        }
+      }
+
+      await activityEntity.$delete();
+    }
   }
 
   /**
@@ -476,9 +550,24 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     fullReplace: boolean
   ) {
-    // TODO
-    console.log('updateActivity', activity, { fullReplace });
-    return activity;
+    // console.log('updateActivity', activity, { fullReplace });
+
+    const activityEntity = await this.nymph.getEntity(
+      { class: this.SocialActivity, skipAc: true },
+      { type: '&', equal: ['id', activity.id] }
+    );
+
+    if (!activityEntity) {
+      throw new Error('Activity not found.');
+    }
+
+    await activityEntity.$acceptAPObject(activity, fullReplace);
+
+    if (!(await activityEntity.$saveSkipAC())) {
+      throw new Error("Couldn't save activity.");
+    }
+
+    return (await activityEntity.$toAPObject(true)) as APEXActivity;
   }
 
   /**
@@ -490,23 +579,111 @@ class ApexStore implements IApexStore {
     value: any,
     remove: boolean
   ) {
-    // TODO
-    console.log('updateActivityMeta', activity, { key, value, remove });
-    return activity;
+    // console.log('updateActivityMeta', activity, { key, value, remove });
+
+    const activityEntity = await this.nymph.getEntity(
+      { class: this.SocialActivity, skipAc: true },
+      { type: '&', equal: ['id', activity.id] }
+    );
+
+    if (!activityEntity) {
+      throw new Error('Activity not found.');
+    }
+
+    if (remove) {
+      if (activityEntity._meta && key in activityEntity._meta) {
+        if (Array.isArray(activityEntity._meta[key])) {
+          const idx = activityEntity._meta[key].indexOf(value);
+          if (idx !== -1) {
+            activityEntity._meta[key].splice(idx);
+          }
+        } else {
+          delete activityEntity._meta[key];
+        }
+      }
+    } else {
+      if (!activityEntity._meta) {
+        activityEntity._meta = {};
+      }
+
+      if (!(key in activityEntity._meta)) {
+        activityEntity._meta[key] = [];
+      } else if (typeof activityEntity._meta[key] === 'string') {
+        activityEntity._meta[key] = [activityEntity._meta[key]];
+      }
+
+      activityEntity._meta[key].push(value);
+    }
+
+    if (!(await activityEntity.$saveSkipAC())) {
+      throw new Error("Couldn't save activity.");
+    }
+
+    return (await activityEntity.$toAPObject(true)) as APEXActivity;
   }
 
   generateId() {
     // console.log('generateId');
+
     return guid();
   }
 
-  async updateObject(obj: APEXObject, actorId: string, fullReplace: boolean) {
-    // TODO
-    console.log('updateObject', obj, {
-      actorId,
-      fullReplace,
-    });
-    return obj;
+  async updateObject(
+    object: APEXObject,
+    _actorId: string,
+    fullReplace: boolean
+  ) {
+    // console.log('updateObject', obj, {
+    //   actorId,
+    //   fullReplace,
+    // });
+
+    const objectEntity = await this.nymph.getEntity(
+      { class: this.SocialObject, skipAc: true },
+      { type: '&', equal: ['id', object.id] }
+    );
+
+    if (!objectEntity || !objectEntity.id) {
+      throw new Error('Object not found.');
+    }
+
+    await objectEntity.$acceptAPObject(object, fullReplace);
+
+    if (!(await objectEntity.$saveSkipAC())) {
+      throw new Error("Couldn't save object.");
+    }
+
+    const activitiesWithObject = await this.nymph.getEntities(
+      { class: this.SocialActivity, skipAc: true },
+      {
+        type: '&',
+        contain: [
+          ['object', object.id],
+          ['object', 'type'],
+        ],
+      }
+    );
+
+    for (let activity of activitiesWithObject) {
+      if (Array.isArray(activity.object)) {
+        for (let i = 0; i <= activity.object.length; i++) {
+          let curObject = activity.object[i];
+          if (typeof curObject !== 'string' && curObject.type !== 'Link') {
+            activity.object[i] = objectEntity.id;
+          }
+        }
+      } else if (
+        activity.object &&
+        typeof activity.object !== 'string' &&
+        activity.object.type !== 'Link'
+      ) {
+        activity.object = objectEntity.id;
+      }
+
+      await activity.$saveSkipAC();
+    }
+
+    return (await objectEntity.$toAPObject(true)) as APEXObject;
   }
 
   /**

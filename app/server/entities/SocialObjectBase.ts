@@ -49,7 +49,7 @@ export type SocialObjectBaseData = {
   likes?: APLink | APCollection;
   shares?: APLink | APCollection;
 
-  _meta?: { [k: string]: string };
+  _meta?: { collection?: string[] };
 } & AccessControlData;
 
 export class SocialObjectBase<
@@ -116,6 +116,16 @@ export class SocialObjectBase<
     }
   }
 
+  async $convertToAPObject(object: any) {
+    if ('$toAPObject' in object) {
+      return object.$toAPObject();
+    } else if (Array.isArray(object)) {
+      return object.map(this.$convertToAPObject.bind(this));
+    } else {
+      return object;
+    }
+  }
+
   async $toAPObject(includeMeta: boolean) {
     const obj = {
       id: this.$data.id,
@@ -164,7 +174,7 @@ export class SocialObjectBase<
           break;
         // Everything else
         default:
-          obj[name] = this.$data[name];
+          obj[name] = this.$convertToAPObject(this.$data[name]);
           break;
       }
     }
