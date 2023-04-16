@@ -28,7 +28,11 @@ export type SocialObjectData = SocialObjectBaseData & {
     | 'Place'
     | 'Mention'
     | 'Profile'
-    | 'Tombstone';
+    | 'Tombstone'
+    | 'Collection'
+    | 'OrderedCollection'
+    | 'CollectionPage'
+    | 'OrderedCollectionPage';
 };
 
 export class SocialObject extends SocialObjectBase<SocialObjectData> {
@@ -95,7 +99,11 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
           entry === 'Event' ||
           entry === 'Place' ||
           entry === 'Profile' ||
-          entry === 'Tombstone'
+          entry === 'Tombstone' ||
+          entry === 'Collection' ||
+          entry === 'OrderedCollection' ||
+          entry === 'CollectionPage' ||
+          entry === 'OrderedCollectionPage'
         ) {
           this.$data.type = entry;
           break;
@@ -113,7 +121,11 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
       obj.type === 'Event' ||
       obj.type === 'Place' ||
       obj.type === 'Profile' ||
-      obj.type === 'Tombstone'
+      obj.type === 'Tombstone' ||
+      obj.type === 'Collection' ||
+      obj.type === 'OrderedCollection' ||
+      obj.type === 'CollectionPage' ||
+      obj.type === 'OrderedCollectionPage'
     ) {
       this.$data.type = obj.type;
     }
@@ -235,7 +247,12 @@ export const socialObjectJoiProps = {
       'Event',
       'Place',
       'Profile',
-      'Tombstone'
+      'Tombstone',
+
+      'Collection',
+      'OrderedCollection',
+      'CollectionPage',
+      'OrderedCollectionPage'
     )
     .required(),
   fullType: Joi.alternatives()

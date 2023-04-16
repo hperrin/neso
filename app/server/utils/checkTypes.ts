@@ -1,4 +1,10 @@
-import type { APActivity, APActor, APObject } from '_activitypub';
+import type {
+  APActivity,
+  APActor,
+  APCollection,
+  APCollectionPage,
+  APObject,
+} from '_activitypub';
 
 export function isActivity(object: any): object is APActivity {
   return (
@@ -82,8 +88,33 @@ export function isActor(object: any): object is APActor {
   );
 }
 
+export function isCollection(object: any): object is APCollection {
+  return (
+    (typeof object === 'object' &&
+      typeof object.type === 'string' &&
+      (object.type === 'Collection' || object.type === 'OrderedCollection')) ||
+    (Array.isArray(object.type) &&
+      (object.type.indexOf('Collection') !== -1 ||
+        object.type.indexOf('OrderedCollection') !== -1))
+  );
+}
+
+export function isCollectionPage(object: any): object is APCollectionPage {
+  return (
+    (typeof object === 'object' &&
+      typeof object.type === 'string' &&
+      (object.type === 'CollectionPage' ||
+        object.type === 'OrderedCollectionPage')) ||
+    (Array.isArray(object.type) &&
+      (object.type.indexOf('CollectionPage') !== -1 ||
+        object.type.indexOf('OrderedCollectionPage') !== -1))
+  );
+}
+
 export function isObject(object: any): object is APObject {
   return (
+    isCollection(object) ||
+    isCollectionPage(object) ||
     (typeof object === 'object' &&
       typeof object.type === 'string' &&
       (object.type === 'Object' ||

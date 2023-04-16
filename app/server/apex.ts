@@ -235,6 +235,10 @@ class ApexStore implements IApexStore {
       }
     }
 
+    console.error(
+      'Unsupported object type:',
+      (formattedObject as { type?: string }).type
+    );
     throw new Error('Unsupported object type.');
   }
 

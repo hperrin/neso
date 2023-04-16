@@ -20,7 +20,11 @@ export type SocialObjectData = SocialObjectBaseData & {
     | 'Place'
     | 'Mention'
     | 'Profile'
-    | 'Tombstone';
+    | 'Tombstone'
+    | 'Collection'
+    | 'OrderedCollection'
+    | 'CollectionPage'
+    | 'OrderedCollectionPage';
 };
 
 export class SocialObject extends Entity<SocialObjectData> {
