@@ -18,7 +18,7 @@
       {:else if isSocialActor(result.result)}
         <Actor bind:actor={result.result} />
       {:else if isSocialObject(result.result)}
-        <Object bind:object={result.result} stuff={data} />
+        <Object bind:object={result.result} expand stuff={data} />
       {:else}
         <Paper>
           <Title>Unknown Object Type</Title>

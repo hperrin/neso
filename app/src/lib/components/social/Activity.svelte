@@ -28,7 +28,7 @@
 
 {#if object && isSocialObject(object)}
   <div style="margin-top: 1em;">
-    <Object bind:object {stuff} />
+    <Object bind:object {stuff} expand={false} />
   </div>
 {/if}
 
