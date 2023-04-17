@@ -1,5 +1,15 @@
-<div class="page-content">
-  <h1>Notifications</h1>
+<Feed
+  feed="notifications"
+  {activities}
+  emptyMessage="No notifications yet. Time to explore!"
+  stuff={data}
+/>
 
-  <p>This page isn't done yet.</p>
-</div>
+<script lang="ts">
+  import Feed from '$lib/components/social/Feed.svelte';
+  import type { PageData } from './$types';
+
+  export let data: PageData;
+  let { activities } = data;
+  $: ({ activities } = data);
+</script>

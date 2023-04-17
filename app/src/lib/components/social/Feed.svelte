@@ -1,5 +1,7 @@
+<svelte:document on:scroll|passive|capture={handleDocumentScroll} />
+
 <div class="view-container">
-  <div class="list-container">
+  <div class="list-container" bind:this={nextScrollContainer}>
     {#each activities as entry (entry.entity.guid)}
       <Activity
         bind:activity={entry.entity}
@@ -11,40 +13,117 @@
     {:else}
       {emptyMessage}
     {/each}
+    {#if loading}
+      <div style="margin-top: 1em;">Loading...</div>
+    {/if}
+    {#if activities.length && finished}
+      <div style="margin-top: 1em;">That's the end!</div>
+    {/if}
   </div>
 </div>
+
+{#if failureMessage}
+  <div class="app-failure">
+    {failureMessage}
+  </div>
+{/if}
 
 <script lang="ts">
   import Activity from '$lib/components/social/Activity.svelte';
   import type {
-    SocialActivity,
+    SocialActivity as SocialActivityClass,
     SocialActivityData,
   } from '$lib/entities/SocialActivity.js';
   import type {
-    SocialActor,
+    SocialActor as SocialActorClass,
     SocialActorData,
   } from '$lib/entities/SocialActor.js';
   import type {
-    SocialObject,
+    SocialObject as SocialObjectClass,
     SocialObjectData,
   } from '$lib/entities/SocialObject.js';
+  import { getActivityReferences } from '$lib/utils/getActivityReferences.js';
   import type { SessionStuff } from '$lib/nymph';
 
   export let feed: 'home' | 'favorites' | 'local' | 'global' | 'notifications';
   export let activities: {
-    entity: SocialActivity & SocialActivityData;
-    actor: (SocialActor & SocialActorData) | null;
+    entity: SocialActivityClass & SocialActivityData;
+    actor: (SocialActorClass & SocialActorData) | null;
     object:
-      | (SocialActor & SocialActorData)
-      | (SocialObject & SocialObjectData)
+      | (SocialActorClass & SocialActorData)
+      | (SocialObjectClass & SocialObjectData)
       | null;
     target:
-      | (SocialActor & SocialActorData)
-      | (SocialObject & SocialObjectData)
+      | (SocialActorClass & SocialActorData)
+      | (SocialObjectClass & SocialObjectData)
       | null;
   }[];
   export let emptyMessage: string;
   export let stuff: SessionStuff;
+
+  let { SocialActivity, SocialObject } = stuff;
+  $: ({ SocialActivity, SocialObject } = stuff);
+
+  let nextScrollContainer: HTMLDivElement;
+  let loading = false;
+  let finished = activities.length < 20;
+  let failureMessage: string | undefined = undefined;
+
+  async function handleDocumentScroll() {
+    if (nextScrollContainer == null || loading || finished) {
+      return;
+    }
+
+    const el = nextScrollContainer.lastElementChild;
+    if (el == null) {
+      return;
+    }
+
+    const bounding = el.getBoundingClientRect();
+
+    if (
+      bounding.top >= 0 &&
+      bounding.left >= 0 &&
+      bounding.left <= window.innerWidth &&
+      bounding.top <= window.innerHeight + 600
+    ) {
+      loading = true;
+
+      try {
+        let after = activities[activities.length - 1].entity.id;
+
+        if (!after) {
+          loading = false;
+          finished = true;
+          return;
+        }
+
+        let newPage = await SocialActivity.getFeed(feed, after);
+
+        if (newPage.length < 20) {
+          finished = true;
+        }
+
+        activities = [
+          ...activities,
+          ...(await Promise.all(
+            newPage.map(async (entity) => {
+              const { actor, object, target } = await getActivityReferences(
+                entity,
+                SocialObject
+              );
+
+              return { entity, actor, object, target };
+            })
+          )),
+        ];
+      } catch (e: any) {
+        failureMessage = e.message;
+      }
+
+      loading = false;
+    }
+  }
 </script>
 
 <style>

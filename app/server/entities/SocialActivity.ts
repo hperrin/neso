@@ -10,10 +10,13 @@ import type { APLink, APActivity, APActor, APObject } from '_activitypub';
 
 import {
   AP_PUBLIC_ADDRESS,
+  AP_USER_ID_PREFIX,
   AP_USER_OUTBOX_PREFIX,
   AP_USER_INBOX_PREFIX,
+  AP_USER_LIKED_PREFIX,
 } from '../utils/constants.js';
 
+import type { SocialActor as SocialActorClass } from './SocialActor.js';
 import {
   SocialObjectBase,
   apLinkJoi,
@@ -138,7 +141,7 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
       }}`;
 
       return await this.nymph.getEntities(
-        { class: this, limit: 20 },
+        { class: this, limit: 20, sort: 'cdate', reverse: true },
         {
           type: '&',
           contain: ['_meta', collection],
@@ -152,9 +155,54 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
       );
     }
 
-    if (feed === 'global') {
+    if (feed === 'notifications') {
+      const collection = `${AP_USER_INBOX_PREFIX(this.ADDRESS)}${
+        user.username
+      }}`;
+
       return await this.nymph.getEntities(
-        { class: this, limit: 20 },
+        { class: this, limit: 20, sort: 'cdate', reverse: true },
+        {
+          type: '&',
+          contain: ['_meta', collection],
+          ...(afterEntry != null && afterEntry.guid != null
+            ? {
+                lte: ['cdate', afterEntry.cdate || 0],
+                '!guid': afterEntry.guid,
+              }
+            : {}),
+        },
+        {
+          type: '|',
+          equal: [
+            ['type', 'Accept'],
+            ['type', 'TentativeAccept'],
+            ['type', 'Like'],
+            ['type', 'Offer'],
+          ],
+        }
+      );
+    }
+
+    if (feed === 'local') {
+      const prefix = AP_USER_ID_PREFIX(this.ADDRESS);
+      const SocialActor = this.nymph.getEntityClass(
+        'SocialActor'
+      ) as typeof SocialActorClass;
+
+      return await this.nymph.getEntities(
+        { class: this, limit: 20, sort: 'cdate', reverse: true },
+        {
+          type: '|',
+          match: ['actor', `^${prefix}`],
+          qref: [
+            'actor',
+            [
+              { class: SocialActor },
+              { type: '&', match: ['id', `^${prefix}`] },
+            ],
+          ],
+        },
         ...(afterEntry != null && afterEntry.guid != null
           ? ([
               {
@@ -164,6 +212,41 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
               },
             ] as Selector[])
           : [])
+      );
+    }
+
+    if (feed === 'global') {
+      return await this.nymph.getEntities(
+        { class: this, limit: 20, sort: 'cdate', reverse: true },
+        ...(afterEntry != null && afterEntry.guid != null
+          ? ([
+              {
+                type: '&',
+                lte: ['cdate', afterEntry.cdate || 0],
+                '!guid': afterEntry.guid,
+              },
+            ] as Selector[])
+          : [])
+      );
+    }
+
+    if (feed === 'favorites') {
+      const collection = `${AP_USER_LIKED_PREFIX(this.ADDRESS)}${
+        user.username
+      }}`;
+
+      return await this.nymph.getEntities(
+        { class: this, limit: 20, sort: 'cdate', reverse: true },
+        {
+          type: '&',
+          contain: ['_meta', collection],
+          ...(afterEntry != null && afterEntry.guid != null
+            ? {
+                lte: ['cdate', afterEntry.cdate || 0],
+                '!guid': afterEntry.guid,
+              }
+            : {}),
+        }
       );
     }
   }

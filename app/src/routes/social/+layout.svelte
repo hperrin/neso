@@ -27,18 +27,6 @@
     </Item>
     <Item
       draggable="false"
-      href="/social/trending"
-      activated={$page.route.id === '/social/trending'}
-    >
-      <Graphic>
-        <Icon component={Svg} viewBox="0 0 24 24">
-          <path fill="currentColor" d={mdiTrendingUp} />
-        </Icon>
-      </Graphic>
-      <Text>Trending</Text>
-    </Item>
-    <Item
-      draggable="false"
       href="/social/local"
       activated={$page.route.id === '/social/local'}
       title="Posts from users on this server"
@@ -92,7 +80,6 @@
   import {
     mdiHome,
     mdiBell,
-    mdiTrendingUp,
     mdiAccountGroup,
     mdiEarth,
     mdiStar,

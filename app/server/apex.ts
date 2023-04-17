@@ -21,15 +21,7 @@ import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
 import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
 
 import { DOMAIN, ADDRESS } from './nymph.js';
-import {
-  AP_ROUTES,
-  AP_USER_ID_PREFIX,
-  AP_USER_INBOX_PREFIX,
-  AP_USER_OUTBOX_PREFIX,
-  AP_USER_FOLLOWERS_PREFIX,
-  AP_USER_FOLLOWING_PREFIX,
-  AP_USER_LIKED_PREFIX,
-} from './utils/constants.js';
+import { AP_ROUTES, AP_USER_ID_PREFIX } from './utils/constants.js';
 import {
   isActivity,
   isActor,

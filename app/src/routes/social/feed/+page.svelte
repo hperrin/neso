@@ -1,6 +1,6 @@
 <Feed
   feed="home"
-  bind:activities
+  {activities}
   emptyMessage="Your feed is empty!"
   stuff={data}
 />

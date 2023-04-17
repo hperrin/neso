@@ -1,6 +1,6 @@
 <Feed
   feed="global"
-  bind:activities
+  {activities}
   emptyMessage="Your instance's view of the world is empty!"
   stuff={data}
 />

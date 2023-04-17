@@ -6,7 +6,7 @@ export const load: PageLoad = async ({ parent }) => {
   const { SocialActivity, SocialObject } = await parent();
 
   try {
-    let activities = await SocialActivity.getFeed('local');
+    let activities = await SocialActivity.getFeed('favorites');
 
     return {
       activities: await Promise.all(
