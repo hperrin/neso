@@ -116,10 +116,4 @@
     height: 100%;
     overflow-y: auto;
   }
-
-  * :global(.ellipsis) {
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-  }
 </style>

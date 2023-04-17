@@ -45,17 +45,11 @@ export const load: LayoutLoad = async ({ data, fetch }) => {
     SECURE == 'true'
   );
 
-  const {
-    readyPromise,
-    settingsReadyPromise,
-    projectsReadyPromise,
-    systemAdmin,
-  } = stuff.stores;
+  const { readyPromise, settingsReadyPromise, systemAdmin } = stuff.stores;
 
   try {
     await get(readyPromise);
     await get(settingsReadyPromise);
-    await get(projectsReadyPromise);
   } catch (e: any) {
     throw error(500, e.message);
   }

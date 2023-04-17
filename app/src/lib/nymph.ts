@@ -20,6 +20,7 @@ import { SocialObject as SocialObjectClass } from '$lib/entities/SocialObject.js
 import type { SocialObjectData } from '$lib/entities/SocialObject.js';
 
 export type SessionStuff = {
+  ADDRESS: string;
   nymph: Nymph;
   pubsub: PubSub;
   stores: Stores;
@@ -40,21 +41,21 @@ export const nymphBuilder = (
   DOMAIN: string = '127.0.0.1',
   SECURE: boolean = false
 ) => {
-  const SERVER =
+  const ADDRESS =
     DOMAIN === '127.0.0.1'
       ? 'http://127.0.0.1:5173'
       : DOMAIN === 'localhost'
       ? 'http://localhost:5173'
       : `${SECURE ? 'https' : 'http'}://${DOMAIN}`;
-  const PUBSUB_SERVER = SERVER.replace(/^http(s?)/, 'ws$1').replace(
+  const PUBSUB_ADDRESS = ADDRESS.replace(/^http(s?)/, 'ws$1').replace(
     /:5173/,
     () => ':8080'
   );
 
   const nymphOptions: NymphOptions = {
-    restUrl: `${SERVER}/rest`,
+    restUrl: `${ADDRESS}/rest`,
     weakCache: true,
-    pubsubUrl: PUBSUB_SERVER,
+    pubsubUrl: PUBSUB_ADDRESS,
     WebSocket:
       typeof window !== 'undefined'
         ? window.WebSocket
@@ -75,7 +76,7 @@ export const nymphBuilder = (
   const SocialActor = nymph.addEntityClass(SocialActorClass);
   const SocialObject = nymph.addEntityClass(SocialObjectClass);
 
-  SocialObject.ADDRESS = SERVER;
+  SocialObject.ADDRESS = ADDRESS;
 
   // Help with dev.
   if (typeof window !== 'undefined') {
@@ -93,6 +94,7 @@ export const nymphBuilder = (
   }
 
   return {
+    ADDRESS,
     nymph,
     pubsub,
     User,
@@ -113,6 +115,7 @@ export let buildSessionStuff = (
   SECURE?: boolean
 ): SessionStuff => {
   const {
+    ADDRESS,
     nymph,
     pubsub,
     User,
@@ -159,6 +162,7 @@ export let buildSessionStuff = (
   Promise.all(readyNecessaryPromises).then(() => readyPromiseResolve());
 
   return {
+    ADDRESS,
     nymph,
     pubsub,
     stores: myStores,
