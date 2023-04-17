@@ -192,7 +192,7 @@ export function getNymphInstance({
       cookiePath: '/',
       setupPath: '/user',
       emailUsernames: false,
-      userFields: ['name'],
+      userFields: ['name', 'email'],
       verifyEmail: false,
       verifyRedirect: `${ADDRESS}/verified`,
       verifyChangeRedirect: ADDRESS,

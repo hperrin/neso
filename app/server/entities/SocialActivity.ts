@@ -3,10 +3,12 @@ import { nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
 import type { Tilmeld } from '@nymphjs/tilmeld';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
+import { guid } from '@nymphjs/guid';
 import Joi from 'joi';
 import type { SchemaMap } from 'joi';
 import fetch from 'node-fetch';
 import type { APLink, APActivity, APActor, APObject } from '_activitypub';
+import ActivitypubExpress from 'activitypub-express';
 
 import {
   AP_PUBLIC_ADDRESS,
@@ -14,6 +16,7 @@ import {
   AP_USER_OUTBOX_PREFIX,
   AP_USER_INBOX_PREFIX,
   AP_USER_LIKED_PREFIX,
+  AP_ACTIVITY_PREFIX,
 } from '../utils/constants.js';
 
 import type { SocialActor as SocialActorClass } from './SocialActor.js';
@@ -90,6 +93,7 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
   private $skipAcWhenSaving = false;
 
   public static ADDRESS = 'http://127.0.0.1:5173';
+  public static apex: ReturnType<typeof ActivitypubExpress>;
 
   static async factory(
     guid?: string
@@ -366,6 +370,10 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
       throw new HttpError("Couldn't get request cookie.", 500);
     }
 
+    this.$data.actor = `${AP_USER_ID_PREFIX(
+      (this.constructor as typeof SocialActivity).ADDRESS
+    )}${user.username}`;
+
     if (this.$data.to == null) {
       this.$data.to = [AP_PUBLIC_ADDRESS];
     }
@@ -374,10 +382,21 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
       this.$data.fullType = this.$data.type;
     }
 
+    // Save the entity.
+    this.$data.id = `${AP_ACTIVITY_PREFIX(
+      (this.constructor as typeof SocialActivity).ADDRESS
+    )}${guid()}`;
+    this.$data.user = user;
+    if (!(await this.$saveSkipAC())) {
+      throw new HttpError("Couldn't save activity.", 500);
+    }
+
     const outbox = `${AP_USER_OUTBOX_PREFIX(
       (this.constructor as typeof SocialActivity).ADDRESS
     )}${user.username}`;
-    const apObject = await this.$toAPObject(false);
+    const apObject = await (
+      this.constructor as typeof SocialActivity
+    ).apex.fromJSONLD(await this.$toAPObject(false));
 
     const result = await fetch(outbox, {
       method: 'POST',

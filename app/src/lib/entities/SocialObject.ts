@@ -70,6 +70,10 @@ export class SocialObject extends Entity<SocialObjectData> {
   }
 
   static async getId(id: string) {
+    if (typeof id !== 'string') {
+      return null;
+    }
+
     const Actor = this.nymph.getEntityClass(
       'SocialActor'
     ) as typeof SocialActorClass;
@@ -153,6 +157,10 @@ export class SocialObject extends Entity<SocialObjectData> {
   }
 
   static async getIdActorOrObject(id: string) {
+    if (typeof id !== 'string') {
+      return null;
+    }
+
     const Actor = this.nymph.getEntityClass(
       'SocialActor'
     ) as typeof SocialActorClass;
@@ -218,6 +226,10 @@ export class SocialObject extends Entity<SocialObjectData> {
   }
 
   static async getIdObject(id: string) {
+    if (typeof id !== 'string') {
+      return null;
+    }
+
     const Object = this.nymph.getEntityClass(
       'SocialObject'
     ) as typeof SocialObject;
@@ -265,6 +277,10 @@ export class SocialObject extends Entity<SocialObjectData> {
   }
 
   static async getIdActivity(id: string) {
+    if (typeof id !== 'string') {
+      return null;
+    }
+
     const Activity = this.nymph.getEntityClass(
       'SocialActivity'
     ) as typeof SocialActivityClass;
@@ -312,6 +328,10 @@ export class SocialObject extends Entity<SocialObjectData> {
   }
 
   static async getIdActor(id: string) {
+    if (typeof id !== 'string') {
+      return null;
+    }
+
     const Actor = this.nymph.getEntityClass(
       'SocialActor'
     ) as typeof SocialActorClass;
@@ -391,7 +411,11 @@ export class SocialObject extends Entity<SocialObjectData> {
     return e;
   }
 
-  async $send() {
+  async $getActivity(): Promise<string | null> {
+    return await this.$serverCall('$getActivity', [], true);
+  }
+
+  async $send(): Promise<boolean> {
     return await this.$serverCall('$send', [], true);
   }
 }

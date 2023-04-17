@@ -26,3 +26,4 @@ export const AP_USER_FOLLOWERS_PREFIX = (SERVER: string) =>
 export const AP_USER_FOLLOWING_PREFIX = (SERVER: string) =>
   `${SERVER}/following/`;
 export const AP_USER_LIKED_PREFIX = (SERVER: string) => `${SERVER}/liked/`;
+export const AP_ACTIVITY_PREFIX = (SERVER: string) => `${SERVER}/activites/`;

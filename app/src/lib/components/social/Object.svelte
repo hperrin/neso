@@ -97,13 +97,29 @@
             <path fill="currentColor" d={mdiReply} />
           </Icon>
         </IconButton>
-        <IconButton>
+        <IconButton
+          on:click={announce}
+          pressed={!!object.$boosted}
+          title={object.$boosted ? 'Unboost' : 'Boost'}
+          disabled={loading}
+        >
           <Icon component={Svg} viewBox="0 0 24 24">
             <path fill="currentColor" d={mdiRepeat} />
           </Icon>
+          <Icon component={Svg} viewBox="0 0 24 24" on>
+            <path fill="currentColor" d={mdiRepeatOff} />
+          </Icon>
         </IconButton>
-        <IconButton>
+        <IconButton
+          on:click={like}
+          pressed={!!object.$liked}
+          title={object.$liked ? 'Unlike' : 'Like'}
+          disabled={loading}
+        >
           <Icon component={Svg} viewBox="0 0 24 24">
+            <path fill="currentColor" d={mdiStarOutline} />
+          </Icon>
+          <Icon component={Svg} viewBox="0 0 24 24" on>
             <path fill="currentColor" d={mdiStar} />
           </Icon>
         </IconButton>
@@ -139,6 +155,12 @@
     {/if}
   </Paper>
 
+  {#if failureMessage}
+    <div class="app-failure">
+      {failureMessage}
+    </div>
+  {/if}
+
   {#if expand}
     {#await replies}
       <div class="loading">Loading...</div>
@@ -159,7 +181,14 @@
 
 <script lang="ts">
   import type { APLink, APObject } from '_activitypub';
-  import { mdiDotsHorizontal, mdiReply, mdiStar, mdiRepeat } from '@mdi/js';
+  import {
+    mdiDotsHorizontal,
+    mdiReply,
+    mdiStarOutline,
+    mdiStar,
+    mdiRepeatOff,
+    mdiRepeat,
+  } from '@mdi/js';
   import Paper, { Content } from '@smui/paper';
   import Menu from '@smui/menu';
   import List, { Item, Separator, Text } from '@smui/list';
@@ -169,16 +198,22 @@
   import Profile from '$lib/components/social/Profile.svelte';
   import APObjectArray from '$lib/components/social/APObjectArray.svelte';
   import type {
-    SocialObject,
+    SocialActivity as SocialActivityClass,
+    SocialActivityData,
+  } from '$lib/entities/SocialActivity.js';
+  import type {
+    SocialObject as SocialObjectClass,
     SocialObjectData,
   } from '$lib/entities/SocialObject.js';
   import { getAuthorId } from '$lib/utils/getAuthorId.js';
   import { getInReplyTo } from '$lib/utils/getInReplyTo.js';
   import { isSocialObject } from '$lib/utils/checkTypes.js';
   import { sanitize } from '$lib/utils/sanitize.js';
+  import { AP_PUBLIC_ADDRESS } from '$lib/utils/constants.js';
   import type { SessionStuff } from '$lib/nymph.js';
 
-  export let object: SocialObject & SocialObjectData;
+  export let object: SocialObjectClass & SocialObjectData;
+  export let activity: (SocialActivityClass & SocialActivityData) | null = null;
   export let expand: boolean;
   export let levelBar = false;
   export let linkParent = true;
@@ -187,8 +222,8 @@
   export let onlyObjects = false;
   export let stuff: SessionStuff;
 
-  let { SocialObject, stores } = stuff;
-  $: ({ SocialObject, stores } = stuff);
+  let { SocialActivity, SocialObject, stores } = stuff;
+  $: ({ SocialActivity, SocialObject, stores } = stuff);
   let { inReplyTo } = stores;
   $: ({ inReplyTo } = stores);
 
@@ -197,6 +232,8 @@
   let objectArrayLoaded = false;
   let showNextPage = false;
   let showSource = false;
+  let loading = false;
+  let failureMessage: string | undefined = undefined;
 
   $: html =
     object.contentMap != null && 'en' in object.contentMap
@@ -299,6 +336,94 @@
     ) {
       showNextPage = true;
     }
+  }
+
+  async function like() {
+    loading = true;
+
+    try {
+      if (object.$liked) {
+        const actvitiyEntity = await SocialActivity.factory();
+
+        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        actvitiyEntity.type = 'Undo';
+        actvitiyEntity.object = object.$liked;
+
+        if (!(await actvitiyEntity.$send())) {
+          failureMessage = "Couldn't boost post.";
+        } else {
+          await object.$refresh();
+          object = object;
+          failureMessage = undefined;
+        }
+      } else {
+        const actvitiyEntity = await SocialActivity.factory();
+
+        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        actvitiyEntity.type = 'Like';
+        if (activity) {
+          actvitiyEntity.object = activity.id;
+        } else {
+          actvitiyEntity.object = (await object.$getActivity()) || undefined;
+        }
+
+        if (!(await actvitiyEntity.$send())) {
+          failureMessage = "Couldn't like post.";
+        } else {
+          await object.$refresh();
+          object = object;
+          failureMessage = undefined;
+        }
+      }
+    } catch (e: any) {
+      failureMessage = e.message;
+    }
+
+    loading = false;
+  }
+
+  async function announce() {
+    loading = true;
+
+    try {
+      if (object.$boosted) {
+        const actvitiyEntity = await SocialActivity.factory();
+
+        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        actvitiyEntity.type = 'Undo';
+        actvitiyEntity.object = object.$boosted;
+
+        if (!(await actvitiyEntity.$send())) {
+          failureMessage = "Couldn't boost post.";
+        } else {
+          await object.$refresh();
+          object = object;
+          failureMessage = undefined;
+        }
+      } else {
+        const actvitiyEntity = await SocialActivity.factory();
+
+        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        actvitiyEntity.type = 'Announce';
+        if (activity) {
+          actvitiyEntity.object = activity.id;
+        } else {
+          actvitiyEntity.object = (await object.$getActivity()) || undefined;
+        }
+
+        if (!(await actvitiyEntity.$send())) {
+          failureMessage = "Couldn't boost post.";
+        } else {
+          await object.$refresh();
+          object = object;
+          failureMessage = undefined;
+        }
+      }
+    } catch (e: any) {
+      failureMessage = e.message;
+    }
+
+    loading = false;
   }
 </script>
 

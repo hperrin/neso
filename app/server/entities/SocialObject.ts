@@ -5,9 +5,11 @@ import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
 import fetch from 'node-fetch';
 import type { APObject } from '_activitypub';
+import ActivitypubExpress from 'activitypub-express';
 
 import {
   AP_PUBLIC_ADDRESS,
+  AP_USER_ID_PREFIX,
   AP_USER_OUTBOX_PREFIX,
 } from '../utils/constants.js';
 
@@ -17,6 +19,7 @@ import {
   apObjectJoi,
 } from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';
+import type { SocialActivity as SocialActivityClass } from './SocialActivity.js';
 
 export type SocialObjectData = SocialObjectBaseData & {
   type:
@@ -45,7 +48,7 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
   static ETYPE = 'socialobject';
   static class = 'SocialObject';
 
-  protected $clientEnabledMethods = ['$send'];
+  protected $clientEnabledMethods = ['$getActivity', '$send'];
   protected $privateData = ['_meta'];
   protected $protectedData = ['id'];
 
@@ -53,11 +56,63 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
   private $skipAcWhenDeleting = false;
 
   public static ADDRESS = 'http://127.0.0.1:5173';
+  public static apex: ReturnType<typeof ActivitypubExpress>;
+
+  $liked: string | false = false;
+  $boosted: string | false = false;
 
   static async factory(
     guid?: string
   ): Promise<SocialObject & SocialObjectData> {
-    return (await super.factory(guid)) as SocialObject & SocialObjectData;
+    const SocialActivity = this.nymph.getEntityClass(
+      'SocialActivity'
+    ) as typeof SocialActivityClass;
+    const entity = (await super.factory(guid)) as SocialObject &
+      SocialObjectData;
+
+    if (entity.guid) {
+      const activity = await entity.$getActivity();
+      entity.$liked =
+        (
+          await this.nymph.getEntity(
+            { class: SocialActivity },
+            { type: '&', equal: ['type', 'Like'] },
+            {
+              type: '|',
+              equal: ['object', activity],
+              contain: ['object', activity],
+              qref: [
+                'object',
+                [
+                  { class: this.constructor as typeof SocialObject },
+                  { type: '&', equal: ['id', activity] },
+                ],
+              ],
+            }
+          )
+        )?.id || false;
+      entity.$boosted =
+        (
+          await this.nymph.getEntity(
+            { class: SocialActivity },
+            { type: '&', equal: ['type', 'Announce'] },
+            {
+              type: '|',
+              equal: ['object', activity],
+              contain: ['object', activity],
+              qref: [
+                'object',
+                [
+                  { class: this.constructor as typeof SocialObject },
+                  { type: '&', equal: ['id', activity] },
+                ],
+              ],
+            }
+          )
+        )?.id || false;
+    }
+
+    return entity;
   }
 
   static factorySync(guid?: string): SocialObject & SocialObjectData {
@@ -76,6 +131,50 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
         { type: '&', equal: ['id', id] }
       );
       if (entity != null) {
+        const SocialActivity = this.nymph.getEntityClass(
+          'SocialActivity'
+        ) as typeof SocialActivityClass;
+
+        const activity = await entity.$getActivity();
+        entity.$liked =
+          (
+            await this.nymph.getEntity(
+              { class: SocialActivity },
+              { type: '&', equal: ['type', 'Like'] },
+              {
+                type: '|',
+                equal: ['object', activity],
+                contain: ['object', activity],
+                qref: [
+                  'object',
+                  [
+                    { class: this.constructor as typeof SocialObject },
+                    { type: '&', equal: ['id', activity] },
+                  ],
+                ],
+              }
+            )
+          )?.id || false;
+        entity.$boosted =
+          (
+            await this.nymph.getEntity(
+              { class: SocialActivity },
+              { type: '&', equal: ['type', 'Announce'] },
+              {
+                type: '|',
+                equal: ['object', activity],
+                contain: ['object', activity],
+                qref: [
+                  'object',
+                  [
+                    { class: this.constructor as typeof SocialObject },
+                    { type: '&', equal: ['id', activity] },
+                  ],
+                ],
+              }
+            )
+          )?.id || false;
+
         return entity;
       }
     }
@@ -95,8 +194,9 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
     const obj = super.toJSON();
 
     if (obj && !Array.isArray(obj)) {
-      (obj as EntityJson & { $liked: string | false }).$liked = 'someid';
-      (obj as EntityJson & { $boosted: string | false }).$boosted = 'someid';
+      (obj as EntityJson & { $liked: string | false }).$liked = this.$liked;
+      (obj as EntityJson & { $boosted: string | false }).$boosted =
+        this.$boosted;
     }
 
     return obj;
@@ -153,6 +253,30 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
     this.$data.fullType = obj.type;
   }
 
+  async $getActivity() {
+    const SocialActivity = this.$nymph.getEntityClass(
+      'SocialActivity'
+    ) as typeof SocialActivityClass;
+    return (
+      await this.$nymph.getEntity(
+        { class: SocialActivity },
+        { type: '&', equal: ['type', 'Create'] },
+        {
+          type: '|',
+          equal: ['object', this.$data.id],
+          contain: ['object', this.$data.id],
+          qref: [
+            'object',
+            [
+              { class: this.constructor as typeof SocialObject },
+              { type: '&', equal: ['id', this.$data.id] },
+            ],
+          ],
+        }
+      )
+    )?.id;
+  }
+
   async $send() {
     if (!this.$nymph.tilmeld?.gatekeeper()) {
       // Only allow logged in users to send.
@@ -181,6 +305,10 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
       throw new HttpError("Couldn't get request cookie.", 500);
     }
 
+    this.$data.attributedTo = `${AP_USER_ID_PREFIX(
+      (this.constructor as typeof SocialObject).ADDRESS
+    )}${user.username}`;
+
     if (this.$data.to == null) {
       this.$data.to = [AP_PUBLIC_ADDRESS];
     }
@@ -192,7 +320,9 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
     const outbox = `${AP_USER_OUTBOX_PREFIX(
       (this.constructor as typeof SocialObject).ADDRESS
     )}${user.username}`;
-    const apObject = await this.$toAPObject(false);
+    const apObject = await (
+      this.constructor as typeof SocialObject
+    ).apex.fromJSONLD(await this.$toAPObject(false));
 
     const result = await fetch(outbox, {
       method: 'POST',

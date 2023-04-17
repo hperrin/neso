@@ -1,4 +1,3 @@
-import { generateKeyPair } from 'node:crypto';
 import type { Nymph, Options, Selector } from '@nymphjs/nymph';
 import { guid } from '@nymphjs/guid';
 import { HttpError } from '@nymphjs/server';
@@ -124,6 +123,10 @@ class ApexStore implements IApexStore {
   async getObject(id: string, includeMeta?: boolean) {
     console.log('getObject', { id, includeMeta });
 
+    if (typeof id !== 'string') {
+      return null;
+    }
+
     // Look for an actor.
     const actor = await this.SocialActor.factoryId(id);
     if (actor.guid != null) {
@@ -153,9 +156,9 @@ class ApexStore implements IApexStore {
   }
 
   async saveObject(object: APEXObject) {
+    console.log('saveObject (unformatted)', object);
     const formattedObject = await this.apex.toJSONLD(object);
-
-    console.log('saveObject', formattedObject);
+    console.log('saveObject (formatted', formattedObject);
 
     try {
       if (isActivity(formattedObject)) {
@@ -432,9 +435,9 @@ class ApexStore implements IApexStore {
    * Return undefined if it has already been saved (the ID exists).
    */
   async saveActivity(activity: APEXActivity | APEXIntransitiveActivity) {
+    console.log('saveActivity (unformatted)', activity);
     const formattedActivity = await this.apex.toJSONLD(activity);
-
-    console.log('saveActivity', formattedActivity);
+    console.log('saveActivity (formatted)', formattedActivity);
 
     const activityEntity = await this.SocialActivity.factory();
     await activityEntity.$acceptAPObject(formattedActivity, true);
@@ -455,9 +458,9 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     actorId: string
   ) {
+    console.log('removeActivity (unformatted)', activity, { actorId });
     const formattedActivity = await this.apex.toJSONLD(activity);
-
-    console.log('removeActivity', formattedActivity, { actorId });
+    console.log('removeActivity (formatted)', formattedActivity, { actorId });
 
     const activities = await this.nymph.getEntities(
       { class: this.SocialActivity, skipAc: true },
@@ -485,9 +488,11 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     fullReplace: boolean
   ) {
+    console.log('updateActivity (unformatted)', activity, { fullReplace });
     const formattedActivity = await this.apex.toJSONLD(activity);
-
-    console.log('updateActivity', formattedActivity, { fullReplace });
+    console.log('updateActivity (formatted)', formattedActivity, {
+      fullReplace,
+    });
 
     const activityEntity = await this.nymph.getEntity(
       { class: this.SocialActivity, skipAc: true },
@@ -523,9 +528,13 @@ class ApexStore implements IApexStore {
     value: any,
     remove: boolean
   ) {
+    console.log('updateActivityMeta (unformatted)', activity, {
+      key,
+      value,
+      remove,
+    });
     const formattedActivity = await this.apex.toJSONLD(activity);
-
-    console.log('updateActivityMeta', formattedActivity, {
+    console.log('updateActivityMeta (formatted)', formattedActivity, {
       key,
       value,
       remove,
@@ -598,9 +607,12 @@ class ApexStore implements IApexStore {
     actorId: string,
     fullReplace: boolean
   ) {
+    console.log('updateObject (unformatted)', object, {
+      actorId,
+      fullReplace,
+    });
     const formattedObject = await this.apex.toJSONLD(object);
-
-    console.log('updateObject', formattedObject, {
+    console.log('updateObject (formatted)', formattedObject, {
       actorId,
       fullReplace,
     });

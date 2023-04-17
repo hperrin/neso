@@ -95,7 +95,7 @@ export class SocialActivity extends Entity<SocialActivityData> {
     return await this.serverCallStatic('getFeed', [feed, after]);
   }
 
-  async $send() {
-    return await this.$serverCall('$send', [], true);
+  async $send(): Promise<boolean> {
+    return await this.$serverCall('$send', []);
   }
 }

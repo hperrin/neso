@@ -38,11 +38,15 @@ const {
   restMiddleware,
   tilmeldSetupMiddleware,
   corsMiddleware,
+  SocialObject,
+  SocialActivity,
 } = getNymphInstance({
   devDB: path.resolve(__dirname, '..', 'development.db'),
 });
 
 const apex = buildApex(nymph);
+SocialObject.apex = apex;
+SocialActivity.apex = apex;
 
 const apexRunner = (middlewares) => {
   return async (req, res, next) => {

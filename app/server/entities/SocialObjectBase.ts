@@ -128,7 +128,7 @@ export class SocialObjectBase<
 
   async $toAPObject(includeMeta: boolean) {
     const obj = {
-      id: this.$data.id,
+      ...(this.$data.id ? { id: this.$data.id } : {}),
       type: this.$data.fullType,
     } as APObject;
 
