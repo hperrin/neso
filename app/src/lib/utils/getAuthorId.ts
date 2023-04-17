@@ -5,6 +5,10 @@ import type {
 import { isLink, isObject } from '$lib/utils/checkTypes.js';
 
 export function getAuthorId(object: SocialObject & SocialObjectData) {
+  if (!object.attributedTo) {
+    return null;
+  }
+
   if (Array.isArray(object.attributedTo)) {
     if (isLink(object.attributedTo[0])) {
       return typeof object.attributedTo[0] === 'string'

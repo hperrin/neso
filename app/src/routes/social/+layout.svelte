@@ -75,18 +75,6 @@
       </Graphic>
       <Text>Favorites</Text>
     </Item>
-    <Item
-      draggable="false"
-      href="/social/bookmarks"
-      activated={$page.route.id === '/social/bookmarks'}
-    >
-      <Graphic>
-        <Icon component={Svg} viewBox="0 0 24 24">
-          <path fill="currentColor" d={mdiBookmark} />
-        </Icon>
-      </Graphic>
-      <Text>Bookmarks</Text>
-    </Item>
 
     {#if failureMessage}
       <Item nonInteractive>
@@ -108,7 +96,6 @@
     mdiAccountGroup,
     mdiEarth,
     mdiStar,
-    mdiBookmark,
   } from '@mdi/js';
   import List, { Item, Text, Graphic } from '@smui/list';
   import { Icon, Svg } from '@smui/common';

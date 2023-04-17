@@ -2,7 +2,19 @@
   <Content>
     <div class="post-header">
       <Profile account={author} {stuff} />
-      <RelativeDate date={object.published || object.cdate} />
+      <div>
+        <RelativeDate date={object.published || object.cdate} />
+
+        {#if object.inReplyTo}
+          <div class="reply-link">
+            <a
+              href="/social/search/{encodeURIComponent(
+                getInReplyTo(object) || ''
+              )}">See Parent</a
+            >
+          </div>
+        {/if}
+      </div>
     </div>
     <div class="note">
       {@html sanitizedHtml}
@@ -15,17 +27,12 @@
       </IconButton>
       <IconButton>
         <Icon component={Svg} viewBox="0 0 24 24">
-          <path fill="currentColor" d={mdiSync} />
+          <path fill="currentColor" d={mdiRepeat} />
         </Icon>
       </IconButton>
       <IconButton>
         <Icon component={Svg} viewBox="0 0 24 24">
           <path fill="currentColor" d={mdiStar} />
-        </Icon>
-      </IconButton>
-      <IconButton>
-        <Icon component={Svg} viewBox="0 0 24 24">
-          <path fill="currentColor" d={mdiBookmark} />
         </Icon>
       </IconButton>
       <IconButton>
@@ -45,13 +52,7 @@
 </Paper>
 
 <script lang="ts">
-  import {
-    mdiBookmark,
-    mdiDotsHorizontal,
-    mdiReply,
-    mdiStar,
-    mdiSync,
-  } from '@mdi/js';
+  import { mdiDotsHorizontal, mdiReply, mdiStar, mdiRepeat } from '@mdi/js';
   import sanitizeHtml from 'sanitize-html';
   import Paper, { Subtitle, Content } from '@smui/paper';
   import { Icon, Svg } from '@smui/common';
@@ -63,6 +64,7 @@
     SocialObjectData,
   } from '$lib/entities/SocialObject.js';
   import { getAuthorId } from '$lib/utils/getAuthorId.js';
+  import { getInReplyTo } from '$lib/utils/getInReplyTo.js';
   import type { SessionStuff } from '$lib/nymph';
 
   export let object: SocialObject & SocialObjectData;
@@ -121,6 +123,11 @@
   }
 
   .actions {
-    margin-top: 5px;
+    margin-top: 1em;
+  }
+
+  .reply-link {
+    font-size: small;
+    text-align: right;
   }
 </style>

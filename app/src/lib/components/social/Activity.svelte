@@ -19,8 +19,10 @@
     to a {target.type.toLowerCase()}
   {/if}
 
-  <span class="date" title={new Date(activity.cdate || 0).toLocaleString()}
-    ><RelativeDate date={activity.cdate} /></span
+  <span
+    class="date"
+    title={new Date(activity.published || activity.cdate || 0).toLocaleString()}
+    ><RelativeDate date={activity.published || activity.cdate} /></span
   >
 </div>
 
@@ -29,6 +31,12 @@
     <Object bind:object {stuff} />
   </div>
 {/if}
+
+<pre style="max-width: 100%; overflow-x: auto;">{JSON.stringify(
+    activity,
+    null,
+    2
+  )}</pre>
 
 <script lang="ts">
   import RelativeDate from '$lib/components/RelativeDate.svelte';

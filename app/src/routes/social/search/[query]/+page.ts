@@ -1,18 +1,8 @@
 import { error } from '@sveltejs/kit';
 // import type { Nymph, EntityConstructor } from '@nymphjs/client';
 // import { queryParser } from '@nymphjs/query-parser';
-import type {
-  SocialActor as SocialActorClass,
-  SocialActorData,
-} from '$lib/entities/SocialActor.js';
-import type {
-  SocialObject as SocialObjectClass,
-  SocialObjectData,
-} from '$lib/entities/SocialObject.js';
 import { isSocialActivity } from '$lib/utils/checkTypes.js';
-import { getActorId } from '$lib/utils/getActorId.js';
-import { getObjectId } from '$lib/utils/getObjectId.js';
-import { getTargetId } from '$lib/utils/getTargetId.js';
+import { getActivityReferences } from '$lib/utils/getActivityReferences.js';
 import type { PageLoad } from './$types';
 
 // function parseTodoSearch<T extends EntityConstructor>(
@@ -73,27 +63,10 @@ export const load: PageLoad = async ({ params, parent }) => {
       }
 
       if (result && isSocialActivity(result)) {
-        let actorId = getActorId(result);
-        let objectId = getObjectId(result);
-        let targetId = getTargetId(result);
-
-        let actor =
-          actorId == null
-            ? null
-            : ((await SocialObject.getId(actorId)) as SocialActorClass &
-                SocialActorData);
-        let object =
-          objectId == null
-            ? null
-            : ((await SocialObject.getId(objectId)) as
-                | (SocialObjectClass & SocialObjectData)
-                | (SocialActorClass & SocialActorData));
-        let target =
-          targetId == null
-            ? null
-            : ((await SocialObject.getId(targetId)) as
-                | (SocialObjectClass & SocialObjectData)
-                | (SocialActorClass & SocialActorData));
+        const { actor, object, target } = await getActivityReferences(
+          result,
+          SocialObject
+        );
 
         return {
           searchResults: [{ result, actor, object, target }],
