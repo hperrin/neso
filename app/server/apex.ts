@@ -109,10 +109,10 @@ class ApexStore implements IApexStore {
       return await this.apex.fromJSONLD(
         (await actor.$toAPObject(!!includeMeta)) as APEXActor
       );
-    } else if (id.startsWith(AP_USER_ID_PREFIX)) {
+    } else if (id.startsWith(AP_USER_ID_PREFIX(ADDRESS))) {
       // This is a user who doesn't have an actor object yet. Let's make them
       // one.
-      const username = id.substring(AP_USER_ID_PREFIX.length);
+      const username = id.substring(AP_USER_ID_PREFIX(ADDRESS).length);
       const user = await this.User.factoryUsername(username);
 
       if (user.guid == null) {
@@ -122,14 +122,14 @@ class ApexStore implements IApexStore {
       actor.$acceptAPObject(
         {
           type: 'Person',
-          id: `${AP_USER_ID_PREFIX}${user.username}`,
+          id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
           name: user.name,
           preferredUsername: user.username,
-          inbox: `${AP_USER_INBOX_PREFIX}${user.username}`,
-          outbox: `${AP_USER_OUTBOX_PREFIX}${user.username}`,
-          followers: `${AP_USER_FOLLOWERS_PREFIX}${user.username}`,
-          following: `${AP_USER_FOLLOWING_PREFIX}${user.username}`,
-          liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
+          inbox: `${AP_USER_INBOX_PREFIX(ADDRESS)}${user.username}`,
+          outbox: `${AP_USER_OUTBOX_PREFIX(ADDRESS)}${user.username}`,
+          followers: `${AP_USER_FOLLOWERS_PREFIX(ADDRESS)}${user.username}`,
+          following: `${AP_USER_FOLLOWING_PREFIX(ADDRESS)}${user.username}`,
+          liked: `${AP_USER_LIKED_PREFIX(ADDRESS)}${user.username}`,
         } as APEXActor,
         true
       );
@@ -161,8 +161,8 @@ class ApexStore implements IApexStore {
 
       actor.user = user;
       actor.publicKey = {
-        id: `${AP_USER_ID_PREFIX}${user.username}#main-key`,
-        owner: `${AP_USER_ID_PREFIX}${user.username}`,
+        id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}#main-key`,
+        owner: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
         publicKeyPem: publicKey,
       };
       actor._meta = {
@@ -199,40 +199,35 @@ class ApexStore implements IApexStore {
 
     console.log('saveObject', formattedObject);
 
-    if (isActivity(formattedObject)) {
-      const obj = await this.SocialActivity.factory();
-      await obj.$acceptAPObject(formattedObject, true);
+    try {
+      if (isActivity(formattedObject)) {
+        const obj = await this.SocialActivity.factory();
+        await obj.$acceptAPObject(formattedObject, true);
 
-      try {
         return await obj.$saveSkipAC();
-      } catch (e) {
-        console.error('Error:', e);
-        throw e;
       }
-    }
 
-    if (isActor(formattedObject)) {
-      const obj = await this.SocialActor.factory();
-      await obj.$acceptAPObject(formattedObject, true);
+      if (isActor(formattedObject)) {
+        const obj = await this.SocialActor.factory();
+        await obj.$acceptAPObject(formattedObject, true);
 
-      try {
         return await obj.$saveSkipAC();
-      } catch (e) {
-        console.error('Error:', e);
-        throw e;
       }
-    }
 
-    if (isObject(formattedObject)) {
-      const obj = await this.SocialObject.factory();
-      await obj.$acceptAPObject(formattedObject, true);
+      if (isObject(formattedObject)) {
+        const obj = await this.SocialObject.factory();
+        await obj.$acceptAPObject(formattedObject, true);
 
-      try {
         return await obj.$saveSkipAC();
-      } catch (e) {
-        console.error('Error:', e);
-        throw e;
       }
+    } catch (e: any) {
+      if (e instanceof HttpError && e.status === 409) {
+        // Object is already saved.
+        return true;
+      }
+
+      console.error('Error:', e);
+      throw e;
     }
 
     console.error(

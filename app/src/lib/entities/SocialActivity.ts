@@ -87,4 +87,8 @@ export class SocialActivity extends Entity<SocialActivityData> {
     }
     return entity;
   }
+
+  async $send() {
+    return await this.$serverCall('$send', [], true);
+  }
 }

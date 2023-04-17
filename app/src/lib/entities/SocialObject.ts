@@ -31,7 +31,7 @@ export class SocialObject extends Entity<SocialObjectData> {
   // The name of the server class
   public static class = 'SocialObject';
 
-  public static localAddress = 'http://127.0.0.1:5173/';
+  public static ADDRESS = 'http://127.0.0.1:5173';
 
   public $level = 0;
 
@@ -136,7 +136,7 @@ export class SocialObject extends Entity<SocialObjectData> {
     }
 
     // If the object is on another server, try to get it.
-    if (!id.startsWith(this.localAddress)) {
+    if (!id.startsWith(`${this.ADDRESS}/`)) {
       const result = await this.getProxy(id);
       if (!result.ok) {
         return null;
@@ -160,7 +160,7 @@ export class SocialObject extends Entity<SocialObjectData> {
   }
 
   static async getProxy(id: string) {
-    return await fetch(`${this.localAddress}proxy`, {
+    return await fetch(`${this.ADDRESS}/proxy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -168,5 +168,9 @@ export class SocialObject extends Entity<SocialObjectData> {
       },
       body: `id=${encodeURIComponent(id)}`,
     });
+  }
+
+  async $send() {
+    return await this.$serverCall('$send', [], true);
   }
 }

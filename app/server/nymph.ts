@@ -219,12 +219,15 @@ export function getNymphInstance({
     SocialObject = nymph.addEntityClass(SocialObjectClass);
     SocialObjectBase = nymph.addEntityClass(SocialObjectBaseClass);
 
+    SocialActivity.ADDRESS = ADDRESS;
+    SocialObject.ADDRESS = ADDRESS;
+
     User = tilmeld.User;
     Group = tilmeld.Group;
 
     User.on('afterRegister', async (user) => {
       if (user.username != 'root') {
-        await handleOnboarding(user);
+        await handleOnboarding(user, ADDRESS);
       }
     });
 

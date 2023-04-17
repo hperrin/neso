@@ -13,7 +13,10 @@ import {
 
 import type { SocialActor as SocialActorClass } from '../entities/SocialActor.js';
 
-export default async function handleOnboarding(user: User & UserData) {
+export default async function handleOnboarding(
+  user: User & UserData,
+  ADDRESS: string
+) {
   const nymph = user.$nymph.clone();
 
   const SocialActor = nymph.getEntityClass(
@@ -25,14 +28,14 @@ export default async function handleOnboarding(user: User & UserData) {
   actor.$acceptAPObject(
     {
       type: 'Person',
-      id: `${AP_USER_ID_PREFIX}${user.username}`,
+      id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
       name: user.name,
       preferredUsername: user.username,
-      inbox: `${AP_USER_INBOX_PREFIX}${user.username}`,
-      outbox: `${AP_USER_OUTBOX_PREFIX}${user.username}`,
-      followers: `${AP_USER_FOLLOWERS_PREFIX}${user.username}`,
-      following: `${AP_USER_FOLLOWING_PREFIX}${user.username}`,
-      liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
+      inbox: `${AP_USER_INBOX_PREFIX(ADDRESS)}${user.username}`,
+      outbox: `${AP_USER_OUTBOX_PREFIX(ADDRESS)}${user.username}`,
+      followers: `${AP_USER_FOLLOWERS_PREFIX(ADDRESS)}${user.username}`,
+      following: `${AP_USER_FOLLOWING_PREFIX(ADDRESS)}${user.username}`,
+      liked: `${AP_USER_LIKED_PREFIX(ADDRESS)}${user.username}`,
     } as APEXActor,
     true
   );
@@ -64,8 +67,8 @@ export default async function handleOnboarding(user: User & UserData) {
 
   actor.user = user;
   actor.publicKey = {
-    id: `${AP_USER_ID_PREFIX}${user.username}#main-key`,
-    owner: `${AP_USER_ID_PREFIX}${user.username}`,
+    id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}#main-key`,
+    owner: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
     publicKeyPem: publicKey,
   };
   actor._meta = {

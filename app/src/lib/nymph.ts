@@ -75,7 +75,7 @@ export const nymphBuilder = (
   const SocialActor = nymph.addEntityClass(SocialActorClass);
   const SocialObject = nymph.addEntityClass(SocialObjectClass);
 
-  SocialObject.localAddress = `${SERVER}/`;
+  SocialObject.ADDRESS = SERVER;
 
   // Help with dev.
   if (typeof window !== 'undefined') {

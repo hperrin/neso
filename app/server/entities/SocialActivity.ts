@@ -1,10 +1,16 @@
 import type { Selector } from '@nymphjs/nymph';
 import { nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
-import { tilmeldJoiProps } from '@nymphjs/tilmeld';
+import { Tilmeld, tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
 import type { SchemaMap } from 'joi';
+import fetch from 'node-fetch';
 import type { APLink, APActivity, APActor, APObject } from '_activitypub';
+
+import {
+  AP_PUBLIC_ADDRESS,
+  AP_USER_OUTBOX_PREFIX,
+} from '../utils/constants.js';
 
 import {
   SocialObjectBase,
@@ -71,10 +77,13 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
   static ETYPE = 'socialactivity';
   static class = 'SocialActivity';
 
+  protected $clientEnabledMethods = ['$send'];
   protected $privateData = ['_meta'];
   protected $protectedData = ['id'];
 
   private $skipAcWhenSaving = false;
+
+  public static ADDRESS = 'http://127.0.0.1:5173';
 
   static async factory(
     guid?: string
@@ -189,6 +198,61 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
 
   async $toAPObject(includeMeta: boolean): Promise<APActivity> {
     return (await super.$toAPObject(includeMeta)) as APActivity;
+  }
+
+  async $send() {
+    if (!this.$nymph.tilmeld?.gatekeeper()) {
+      // Only allow logged in users to send.
+      throw new HttpError('You are not logged in.', 401);
+    }
+
+    if (this.$data.id != null) {
+      throw new HttpError('You can only send new things.', 400);
+    }
+
+    const user = (this.$nymph.tilmeld as Tilmeld).currentUser;
+    const cookie = (this.$nymph.tilmeld as Tilmeld).request?.headers.cookie;
+    const token = (this.$nymph.tilmeld as Tilmeld).request?.header(
+      'X-Xsrf-Token'
+    );
+
+    if (user == null) {
+      throw new HttpError('You are not logged in.', 401);
+    }
+
+    if (cookie == null) {
+      throw new HttpError("Couldn't get request cookie.", 500);
+    }
+
+    if (token == null) {
+      throw new HttpError("Couldn't get request cookie.", 500);
+    }
+
+    if (this.$data.to == null) {
+      this.$data.to = [AP_PUBLIC_ADDRESS];
+    }
+
+    if (this.$data.fullType == null) {
+      this.$data.fullType = this.$data.type;
+    }
+
+    const outbox = `${AP_USER_OUTBOX_PREFIX(
+      (this.constructor as typeof SocialActivity).ADDRESS
+    )}${user.username}`;
+    const apObject = await this.$toAPObject(false);
+
+    const result = await fetch(outbox, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/activity+json',
+        Accept: 'application/activity+json',
+        Cookie: cookie,
+        'X-Xsrf-Token': token,
+      },
+      body: JSON.stringify(apObject),
+    });
+
+    return result.ok;
   }
 
   async $save() {

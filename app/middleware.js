@@ -46,13 +46,14 @@ const apex = buildApex(nymph);
 
 const apexRunner = (middlewares) => {
   return async (req, res, next) => {
-    // TODO: This is unsafe. It should require XSRF token or a local connection.
     if ('TILMELDAUTH' in (req.cookies ?? {})) {
       const authNymph = nymph.clone();
       authNymph.tilmeld.request = req;
       authNymph.tilmeld.response = res;
-      if (authNymph.tilmeld.authenticate(true)) {
-        res.locals.apex.authorizedUserId = `${AP_USER_ID_PREFIX}${authNymph.tilmeld.currentUser.username}`;
+      if (authNymph.tilmeld.authenticate()) {
+        res.locals.apex.authorizedUserId = `${AP_USER_ID_PREFIX(ADDRESS)}${
+          authNymph.tilmeld.currentUser.username
+        }`;
       }
     }
 
@@ -467,6 +468,12 @@ const oauthAuthenticateMiddleware = (options) => {
         const token = await oauth.authenticate(request, response, options);
         res.locals.oauth = { token: token };
         res.locals.user = token.user;
+        if (!res.locals.apex) {
+          res.locals.apex = {};
+        }
+        res.locals.apex.authorizedUserId = `${AP_USER_ID_PREFIX(ADDRESS)}${
+          token.user.username
+        }`;
         next();
       } catch (e) {
         if (e instanceof UnauthorizedRequestError) {
