@@ -43,7 +43,7 @@
     SocialObjectData,
   } from '$lib/entities/SocialObject.js';
   import { getActivityReferences } from '$lib/utils/getActivityReferences.js';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
 
   export let feed: 'home' | 'favorites' | 'local' | 'global' | 'notifications';
   export let activities: {
@@ -117,6 +117,8 @@
             })
           )),
         ];
+
+        failureMessage = undefined;
       } catch (e: any) {
         failureMessage = e.message;
       }

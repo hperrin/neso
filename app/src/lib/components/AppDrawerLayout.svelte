@@ -50,7 +50,7 @@
   import Logo from '$lib/components/Logo.svelte';
   import AccountMenu from '$lib/components/AccountMenu.svelte';
   import { navigating } from '$app/stores';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
 
   export let stores: SessionStuff['stores'];
   let { smallWindow, miniWindow, drawerOpen } = stores;

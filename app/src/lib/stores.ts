@@ -7,7 +7,7 @@ import type {
   UserClass,
   SettingsClass,
   SettingsData,
-} from '$lib/nymph';
+} from '$lib/nymph.js';
 
 export type Stores = {
   readyPromise: Writable<Promise<void>>;

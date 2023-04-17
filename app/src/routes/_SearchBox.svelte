@@ -44,7 +44,7 @@
   import { Icon } from '@smui/common';
   import { Svg } from '@smui/common';
   import { goto } from '$app/navigation';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
   import parseApp from '$lib/utils/parseApp';
   import { navigating, page } from '$app/stores';
 

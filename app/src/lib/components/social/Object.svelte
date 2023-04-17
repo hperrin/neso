@@ -176,7 +176,7 @@
   import { getInReplyTo } from '$lib/utils/getInReplyTo.js';
   import { isSocialObject } from '$lib/utils/checkTypes.js';
   import { sanitize } from '$lib/utils/sanitize.js';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
 
   export let object: SocialObject & SocialObjectData;
   export let expand: boolean;

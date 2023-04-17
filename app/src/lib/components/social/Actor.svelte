@@ -142,7 +142,7 @@
   import { getActorIcon } from '$lib/utils/getActorIcon.js';
   import { getActorImage } from '$lib/utils/getActorImage.js';
   import { sanitize } from '$lib/utils/sanitize.js';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
 
   export let actor: SocialActor & SocialActorData;
   export let expand: boolean;

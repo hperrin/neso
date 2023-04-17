@@ -56,7 +56,7 @@
     isSocialActor,
     isSocialObject,
   } from '$lib/utils/checkTypes.js';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
 
   const dispatch = createEventDispatcher();
 

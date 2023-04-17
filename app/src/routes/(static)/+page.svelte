@@ -66,7 +66,7 @@
   import { Login } from '@nymphjs/tilmeld-components';
   import Paper, { Title, Content } from '@smui/paper';
   import CircularProgress from '@smui/circular-progress';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
   import { goto } from '$app/navigation';
   import type { PageData } from './$types';
 

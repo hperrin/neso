@@ -75,7 +75,7 @@
     SocialObject,
     SocialObjectData,
   } from '$lib/entities/SocialObject.js';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
   import { isSocialObject } from '$lib/utils/checkTypes.js';
 
   export let activity: SocialActivity & SocialActivityData;

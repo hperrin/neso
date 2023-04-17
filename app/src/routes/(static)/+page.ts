@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { get } from 'svelte/store';
-import type { SessionStuff } from '$lib/nymph';
+import type { SessionStuff } from '$lib/nymph.js';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ parent }) => {

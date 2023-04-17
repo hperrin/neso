@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { get } from 'svelte/store';
-import { buildSessionStuff } from '$lib/nymph';
+import { buildSessionStuff } from '$lib/nymph.js';
 import { browser } from '$app/environment';
 import type { LayoutLoad } from './$types';
 

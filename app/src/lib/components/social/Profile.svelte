@@ -43,7 +43,7 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
   import { getActorIcon } from '$lib/utils/getActorIcon.js';
 
   export let account: string | null | undefined = null;

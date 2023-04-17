@@ -56,7 +56,7 @@
   import { Icon } from '@smui/common';
   import { base } from '$app/paths';
   import { goto } from '$app/navigation';
-  import type { SessionStuff } from '$lib/nymph';
+  import type { SessionStuff } from '$lib/nymph.js';
 
   export let stores: SessionStuff['stores'];
   let { tilmeldAdmin, user, userAvatar, settings } = stores;

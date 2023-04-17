@@ -5,7 +5,7 @@
 // }) satisfies RequestHandler;
 
 // import { error } from '@sveltejs/kit';
-// import { buildSessionStuff } from '$lib/nymph';
+// import { buildSessionStuff } from '$lib/nymph.js';
 // import { buildApex } from '$lib/apex';
 // import type { RequestHandler } from './$types';
 
