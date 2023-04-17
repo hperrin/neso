@@ -7,6 +7,7 @@ declare module 'activitypub-express' {
   } from '_activitypub';
 
   const ActivitypubExpress: (opts: any) => {
+    systemUser: any;
     fromJSONLD: <T>(obj: T) => Promise<T>;
     toJSONLD: <T>(obj: T) => Promise<T>;
   };

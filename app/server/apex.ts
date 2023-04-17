@@ -94,6 +94,27 @@ class ApexStore implements IApexStore {
 
   setApex(apex: ReturnType<typeof ActivitypubExpress>) {
     this.apex = apex;
+
+    this.nymph
+      .getEntity(
+        { class: this.SocialActor, skipAc: true },
+        { type: '&', equal: ['id', `${AP_USER_ID_PREFIX(ADDRESS)}root`] }
+      )
+      .then((actor) => {
+        if (actor) {
+          actor
+            .$toAPObject(true)
+            .then((apActor) => {
+              this.apex.systemUser = apActor;
+            })
+            .catch((e) => {
+              console.error('Error:', e);
+            });
+        }
+      })
+      .catch((e) => {
+        console.error('Error:', e);
+      });
   }
 
   async setup(_optionalActor: APEXActor) {
