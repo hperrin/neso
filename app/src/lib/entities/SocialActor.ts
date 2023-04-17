@@ -51,4 +51,8 @@ export class SocialActor extends Entity<SocialActorData> {
     }
     return entity;
   }
+
+  static async fingerUser(alias: string): Promise<string | null> {
+    return await this.serverCallStatic('fingerUser', [alias]);
+  }
 }

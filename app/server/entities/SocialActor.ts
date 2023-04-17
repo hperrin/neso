@@ -4,6 +4,7 @@ import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
 import type { SchemaMap } from 'joi';
+import { webfinger } from 'webfinger-jrd';
 import type { PublicKey, Endpoints, APActor } from '_activitypub';
 
 import {
@@ -35,6 +36,7 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
   static ETYPE = 'socialactor';
   static class = 'SocialActor';
 
+  public static clientEnabledStaticMethods = ['fingerUser'];
   protected $privateData = ['_meta'];
   protected $protectedData = [
     'id',
@@ -75,6 +77,42 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
       }
     }
     return entity;
+  }
+
+  static async fingerUser(alias: string) {
+    try {
+      const account = await new Promise<any>((resolve, reject) => {
+        webfinger(alias, (err: any, result: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+      });
+
+      const links = account && ('links' in account ? account.links : null);
+
+      if (!Array.isArray(links)) {
+        return null;
+      }
+
+      const self = links.find((link) => link.rel === 'self');
+      if (self && self.type === 'application/activity+json') {
+        return self.href;
+      }
+
+      const activityJson = links.find(
+        (link) => link.type === 'application/activity+json'
+      );
+      if (activityJson && activityJson.type === 'application/activity+json') {
+        return activityJson.href;
+      }
+
+      return null;
+    } catch (e: any) {
+      throw new HttpError(e.message, 500);
+    }
   }
 
   constructor(guid?: string) {

@@ -43,7 +43,7 @@ import type { PageLoad } from './$types';
 // }
 
 export const load: PageLoad = async ({ params, parent }) => {
-  const { nymph, pubsub, stores, SocialObject } = await parent();
+  const { nymph, pubsub, stores, SocialActor, SocialObject } = await parent();
   const { search } = stores;
 
   try {
@@ -52,6 +52,15 @@ export const load: PageLoad = async ({ params, parent }) => {
 
     if (searchQuery.match(/^https?:\/\/\S+$/)) {
       const result = await SocialObject.getId(searchQuery);
+
+      return { searchResults: result == null ? [] : [result] };
+    } else if (
+      searchQuery.match(/^@\S+@\S+$/) ||
+      searchQuery.match(/^\S+@\S+$/)
+    ) {
+      const alias = searchQuery.replace(/^@/, '');
+      const id = await SocialActor.fingerUser(alias);
+      const result = id ? await SocialObject.getId(id) : null;
 
       return { searchResults: result == null ? [] : [result] };
     } else {
