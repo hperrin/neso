@@ -20,6 +20,7 @@ import { SocialObject as SocialObjectClass } from '$lib/entities/SocialObject.js
 import type { SocialObjectData } from '$lib/entities/SocialObject.js';
 
 export type SessionStuff = {
+  DOMAIN: string;
   ADDRESS: string;
   nymph: Nymph;
   pubsub: PubSub;
@@ -162,6 +163,7 @@ export let buildSessionStuff = (
   Promise.all(readyNecessaryPromises).then(() => readyPromiseResolve());
 
   return {
+    DOMAIN: DOMAIN || '127.0.0.1',
     ADDRESS,
     nymph,
     pubsub,

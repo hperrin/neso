@@ -3,6 +3,7 @@ import type {
   APActor,
   APCollection,
   APCollectionPage,
+  APLink,
   APObject,
 } from '_activitypub';
 
@@ -203,4 +204,17 @@ export function isSocialObject(
     | (SocialObject & SocialObjectData)
 ): object is SocialObject & SocialObjectData {
   return isObject(object);
+}
+
+export function isLink(object: any): object is APLink {
+  return (
+    isCollection(object) ||
+    isCollectionPage(object) ||
+    (typeof object === 'object' &&
+      typeof object.type === 'string' &&
+      (object.type === 'Link' || object.type === 'Mention')) ||
+    (Array.isArray(object.type) &&
+      (object.type.indexOf('Link') !== -1 ||
+        object.type.indexOf('Mention') !== -1))
+  );
 }

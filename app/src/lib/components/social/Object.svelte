@@ -1,25 +1,11 @@
 <Paper>
-  <div class="post">
+  <Content>
     <div class="post-header">
-      <div class="profile">
-        <img
-          class="avatar"
-          src="/7e17137d13723410.png"
-          alt="User's avatar"
-          width="128"
-          height="128"
-        />
-        <div class="name">
-          <div>
-            <strong>Hunter Perrin</strong>
-          </div>
-          <span>@hperrin@port87.social</span>
-        </div>
-      </div>
-      <span>{format(new Date(Date.now() - 60000))}</span>
+      <Profile account={author} {stuff} />
+      <RelativeDate date={object.published || object.cdate} />
     </div>
     <div class="note">
-      <slot />
+      {@html sanitizedHtml}
     </div>
     <div class="actions">
       <IconButton>
@@ -48,7 +34,14 @@
         </Icon>
       </IconButton>
     </div>
-  </div>
+  </Content>
+  <Content>
+    <pre style="max-width: 100%; overflow-x: auto;">{JSON.stringify(
+        object,
+        null,
+        2
+      )}</pre>
+  </Content>
 </Paper>
 
 <script lang="ts">
@@ -59,38 +52,75 @@
     mdiStar,
     mdiSync,
   } from '@mdi/js';
+  import sanitizeHtml from 'sanitize-html';
+  import Paper, { Subtitle, Content } from '@smui/paper';
   import { Icon, Svg } from '@smui/common';
   import IconButton from '@smui/icon-button';
-  import Paper from '@smui/paper';
-  import type { APActor } from '_activitypub';
+  import RelativeDate from '$lib/components/RelativeDate.svelte';
+  import Profile from '$lib/components/social/Profile.svelte';
+  import type {
+    SocialObject,
+    SocialObjectData,
+  } from '$lib/entities/SocialObject.js';
+  import { isLink, isObject } from '$lib/utils/checkTypes.js';
+  import type { SessionStuff } from '$lib/nymph';
 
-  export let user: APActor;
+  export let object: SocialObject & SocialObjectData;
+  export let stuff: SessionStuff;
 
-  // relative format using intl relative time format
-  const formatter = new Intl.RelativeTimeFormat(undefined, {
-    style: 'narrow',
-  });
+  let sanitizeOptions = {
+    allowedTags: [...sanitizeHtml.defaults.allowedTags, 'img'],
+    allowedAttributes: {
+      '*': ['dir', 'align', 'alt', 'center', 'bgcolor'],
+      a: ['href', 'name', 'target', 'rel'],
+      img: ['src', 'alt', 'title', 'height', 'width'],
+      tr: ['rowspan'],
+      td: ['colspan', 'rowspan'],
+      th: ['colspan', 'rowspan'],
+      table: ['cellspacing'],
+    },
+    allowedSchemes: ['mailto', 'tel'],
+    allowedSchemesByTag: {
+      img: ['data'],
+      a: ['http', 'https', 'mailto', 'tel'],
+    },
+    allowProtocolRelative: false,
+    transformTags: {
+      a: (tagName: string, attribs: { [k: string]: string }) => {
+        attribs.target = '_blank';
+        attribs.rel = 'noopener noreferrer';
+        return {
+          tagName,
+          attribs,
+        };
+      },
+    },
+  };
 
-  function format(date: Date) {
-    const diff = (date.getTime() - Date.now()) / 1000,
-      abs = Math.abs(diff);
-    console.log(diff, abs);
-    if (abs < 60) {
-      return formatter.format(Math.round(diff), 'second');
-    } else if (abs < 3600) {
-      return formatter.format(Math.round(diff / 60), 'minute');
-    } else if (abs < 86400) {
-      return formatter.format(Math.round(diff / 3600), 'hour');
-    } else if (abs < 604800) {
-      return formatter.format(Math.round(diff / 86400), 'day');
-    } else if (abs < 2592000) {
-      return formatter.format(Math.round(diff / 604800), 'week');
-    } else if (abs < 31536000) {
-      return formatter.format(Math.round(diff / 2592000), 'month');
-    } else {
-      return formatter.format(Math.round(diff / 31536000), 'year');
-    }
-  }
+  $: html =
+    object.contentMap != null && 'en' in object.contentMap
+      ? object.contentMap.en
+      : object.content != null
+      ? object.content
+      : '<em>Unrecognized content.</em>';
+
+  $: sanitizedHtml = sanitizeHtml(html.trim(), sanitizeOptions);
+
+  $: author = Array.isArray(object.attributedTo)
+    ? isLink(object.attributedTo[0])
+      ? typeof object.attributedTo[0] === 'string'
+        ? object.attributedTo[0]
+        : object.attributedTo[0].href
+      : isObject(object.attributedTo[0])
+      ? object.attributedTo[0].id
+      : object.attributedTo[0]
+    : isLink(object.attributedTo)
+    ? typeof object.attributedTo === 'string'
+      ? object.attributedTo
+      : object.attributedTo.href
+    : isObject(object.attributedTo)
+    ? object.attributedTo.id
+    : object.attributedTo;
 </script>
 
 <style>
@@ -98,17 +128,6 @@
   .post-header {
     display: flex;
     justify-content: space-between;
-  }
-
-  .profile {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 5px;
-  }
-
-  .post {
-    margin: 5px auto;
   }
 
   .actions {

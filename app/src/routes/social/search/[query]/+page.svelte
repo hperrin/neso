@@ -7,20 +7,24 @@
 <div class="view-container">
   <div class="list-container" bind:this={listContainer}>
     {#each searchResults as result (result.guid)}
-      <Paper>
-        <Subtitle>
-          <span title={new Date(result.cdate || 0).toLocaleString()}
-            ><RelativeDate date={result.cdate} /></span
-          >
-        </Subtitle>
-        <Content>
-          <pre style="max-width: 100%; overflow-x: auto;">{JSON.stringify(
-              result,
-              null,
-              2
-            )}</pre>
-        </Content>
-      </Paper>
+      {#if isSocialActivity(result)}
+        <Activity bind:activity={result} />
+      {:else if isSocialActor(result)}
+        <Actor bind:actor={result} />
+      {:else if isSocialObject(result)}
+        <Object bind:object={result} stuff={data} />
+      {:else}
+        <Paper>
+          <Title>Unknown Object Type</Title>
+          <Content>
+            <pre style="max-width: 100%; overflow-x: auto;">{JSON.stringify(
+                result,
+                null,
+                2
+              )}</pre>
+          </Content>
+        </Paper>
+      {/if}
     {:else}
       <Paper>
         <Content>Nothing was found that matches the search query.</Content>
@@ -32,9 +36,16 @@
 <script lang="ts">
   // import { onMount, onDestroy } from 'svelte';
   // import type { PubSubSubscription, PubSubUpdate } from '@nymphjs/client';
-  import Paper, { Subtitle, Content } from '@smui/paper';
+  import Paper, { Title, Content } from '@smui/paper';
   import { navigating } from '$app/stores';
-  import RelativeDate from '$lib/components/RelativeDate.svelte';
+  import Activity from '$lib/components/social/Activity.svelte';
+  import Actor from '$lib/components/social/Actor.svelte';
+  import Object from '$lib/components/social/Object.svelte';
+  import {
+    isSocialActivity,
+    isSocialActor,
+    isSocialObject,
+  } from '$lib/utils/checkTypes.js';
   import type { PageData } from './$types';
 
   export let data: PageData;
