@@ -40,14 +40,13 @@ To get started, create a root user:
 Username: root
 Password: [whatever]
 Name: Root
-Email: root@localhost
 ```
 
 This user will be created with admin privileges and without any onboarding entities (first time setup). It will have access to the http://127.0.0.1:5173/user/ user admin app.
 
-Now you can log out and create a regular user for testing. This user will not have admin privileges and will be onboarded with some example projects and tasks.
+Now you can log out and create a regular user for testing. This user will not have admin privileges and will be onboarded.
 
-When you create a regular user, the verification email will pop up in your browser. This is what happens in development mode instead of the email actually being sent.
+~~When you create a regular user, the verification email will pop up in your browser. This is what happens in development mode instead of the email actually being sent.~~ Verification emails are turned off for simplicity. This will eventually change.
 
 ## Remote Development Server
 
