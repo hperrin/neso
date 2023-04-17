@@ -1,3 +1,9 @@
+{#if failureMessage}
+  <div class="app-failure">
+    {failureMessage}
+  </div>
+{/if}
+
 <Paper style="margin-bottom: 1em; overflow: hidden;">
   <div
     class="author-header"
@@ -13,7 +19,12 @@
   </div>
   <Content>
     <div class="actions">
-      <Button variant="raised" style="margin-right: 1em;">
+      <Button
+        variant="raised"
+        style="margin-right: 1em;"
+        disabled={loading}
+        on:click={follow}
+      >
         <Label>Follow</Label>
       </Button>
       <div>
@@ -147,18 +158,21 @@
   import { getActorIcon } from '$lib/utils/getActorIcon.js';
   import { getActorImage } from '$lib/utils/getActorImage.js';
   import { sanitize } from '$lib/utils/sanitize.js';
+  import { AP_PUBLIC_ADDRESS } from '$lib/utils/constants.js';
   import type { SessionStuff } from '$lib/nymph.js';
 
   export let actor: SocialActor & SocialActorData;
   export let expand: boolean;
   export let stuff: SessionStuff;
 
-  let { SocialObject } = stuff;
-  $: ({ SocialObject } = stuff);
+  let { SocialActivity, SocialObject } = stuff;
+  $: ({ SocialActivity, SocialObject } = stuff);
 
   let menu: Menu;
   let showSource = false;
   let activeTab = 'Posts';
+  let loading = false;
+  let failureMessage: string | undefined = undefined;
 
   $: html =
     actor.summaryMap != null && 'en' in actor.summaryMap
@@ -208,6 +222,28 @@
   $: following = actor.following
     ? SocialObject.getIdObject(actor.following)
     : Promise.resolve(null);
+
+  async function follow() {
+    loading = true;
+
+    try {
+      const activitiyEntity = await SocialActivity.factory();
+
+      activitiyEntity.to = [AP_PUBLIC_ADDRESS];
+      activitiyEntity.type = 'Follow';
+      activitiyEntity.object = actor.id;
+
+      if (!(await activitiyEntity.$send())) {
+        failureMessage = "Couldn't follow.";
+      } else {
+        failureMessage = 'Follow success!';
+      }
+    } catch (e: any) {
+      failureMessage = e.message;
+    }
+
+    loading = false;
+  }
 </script>
 
 <style>

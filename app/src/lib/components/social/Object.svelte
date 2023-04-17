@@ -343,13 +343,13 @@
 
     try {
       if (object.$liked) {
-        const actvitiyEntity = await SocialActivity.factory();
+        const activitiyEntity = await SocialActivity.factory();
 
-        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
-        actvitiyEntity.type = 'Undo';
-        actvitiyEntity.object = object.$liked;
+        activitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        activitiyEntity.type = 'Undo';
+        activitiyEntity.object = object.$liked;
 
-        if (!(await actvitiyEntity.$send())) {
+        if (!(await activitiyEntity.$send())) {
           failureMessage = "Couldn't boost post.";
         } else {
           await object.$refresh();
@@ -357,17 +357,17 @@
           failureMessage = undefined;
         }
       } else {
-        const actvitiyEntity = await SocialActivity.factory();
+        const activitiyEntity = await SocialActivity.factory();
 
-        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
-        actvitiyEntity.type = 'Like';
+        activitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        activitiyEntity.type = 'Like';
         if (activity) {
-          actvitiyEntity.object = activity.id;
+          activitiyEntity.object = activity.id;
         } else {
-          actvitiyEntity.object = (await object.$getActivity()) || undefined;
+          activitiyEntity.object = (await object.$getActivity()) || undefined;
         }
 
-        if (!(await actvitiyEntity.$send())) {
+        if (!(await activitiyEntity.$send())) {
           failureMessage = "Couldn't like post.";
         } else {
           await object.$refresh();
@@ -387,13 +387,13 @@
 
     try {
       if (object.$boosted) {
-        const actvitiyEntity = await SocialActivity.factory();
+        const activitiyEntity = await SocialActivity.factory();
 
-        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
-        actvitiyEntity.type = 'Undo';
-        actvitiyEntity.object = object.$boosted;
+        activitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        activitiyEntity.type = 'Undo';
+        activitiyEntity.object = object.$boosted;
 
-        if (!(await actvitiyEntity.$send())) {
+        if (!(await activitiyEntity.$send())) {
           failureMessage = "Couldn't boost post.";
         } else {
           await object.$refresh();
@@ -401,17 +401,17 @@
           failureMessage = undefined;
         }
       } else {
-        const actvitiyEntity = await SocialActivity.factory();
+        const activitiyEntity = await SocialActivity.factory();
 
-        actvitiyEntity.to = [AP_PUBLIC_ADDRESS];
-        actvitiyEntity.type = 'Announce';
+        activitiyEntity.to = [AP_PUBLIC_ADDRESS];
+        activitiyEntity.type = 'Announce';
         if (activity) {
-          actvitiyEntity.object = activity.id;
+          activitiyEntity.object = activity.id;
         } else {
-          actvitiyEntity.object = (await object.$getActivity()) || undefined;
+          activitiyEntity.object = (await object.$getActivity()) || undefined;
         }
 
-        if (!(await actvitiyEntity.$send())) {
+        if (!(await activitiyEntity.$send())) {
           failureMessage = "Couldn't boost post.";
         } else {
           await object.$refresh();
