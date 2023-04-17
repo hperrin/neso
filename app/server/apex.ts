@@ -30,7 +30,15 @@ import {
   AP_USER_FOLLOWING_PREFIX,
   AP_USER_LIKED_PREFIX,
 } from './utils/constants.js';
-import { isActivity, isActor, isObject } from './utils/checkTypes.js';
+import {
+  isActivity,
+  isActor,
+  isCollection,
+  isCollectionPage,
+  isObject,
+  isSocialCollection,
+  isSocialCollectionPage,
+} from './utils/checkTypes.js';
 
 export function buildApex(nymph: Nymph) {
   const store = new ApexStore(nymph);
@@ -207,6 +215,12 @@ class ApexStore implements IApexStore {
     // Look for an object.
     const object = await this.SocialObject.factoryId(id);
     if (object.guid != null) {
+      if (isSocialCollection(object) || isSocialCollectionPage(object)) {
+        // We save collections, but APEX should always request them anew.
+        // TODO: is this necessary? something to look at after the hackathon.
+        return null;
+      }
+
       return await this.apex.fromJSONLD(
         (await object.$toAPObject(!!includeMeta)) as APEXObject
       );
@@ -236,6 +250,18 @@ class ApexStore implements IApexStore {
       }
 
       if (isObject(formattedObject)) {
+        if (
+          isCollection(formattedObject) ||
+          isCollectionPage(formattedObject)
+        ) {
+          // Delete the previous version of the collection.
+          const obj = await this.SocialObject.factoryId(formattedObject.id);
+
+          if (obj.guid != null) {
+            await obj.$deleteSkipAC();
+          }
+        }
+
         const obj = await this.SocialObject.factory();
         await obj.$acceptAPObject(formattedObject, true);
 

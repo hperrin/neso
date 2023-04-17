@@ -85,7 +85,7 @@ export const load: PageLoad = async ({ params, parent }) => {
     ) {
       const alias = searchQuery.replace(/^@/, '');
       const id = await SocialActor.fingerUser(alias);
-      const result = id ? await SocialObject.getId(id) : null;
+      const result = id ? await SocialObject.getIdActor(id) : null;
 
       return {
         searchResults:

@@ -1,4 +1,4 @@
-import type { Selector } from '@nymphjs/nymph';
+import type { EntityJson, Selector } from '@nymphjs/nymph';
 import { nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
 import { Tilmeld, tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
@@ -50,6 +50,7 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
   protected $protectedData = ['id'];
 
   private $skipAcWhenSaving = false;
+  private $skipAcWhenDeleting = false;
 
   public static ADDRESS = 'http://127.0.0.1:5173';
 
@@ -88,6 +89,17 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
       this.$data.type = 'Object';
       this.$data.fullType = ['Object'];
     }
+  }
+
+  public toJSON() {
+    const obj = super.toJSON();
+
+    if (obj && !Array.isArray(obj)) {
+      (obj as EntityJson & { $liked: string | false }).$liked = 'someid';
+      (obj as EntityJson & { $boosted: string | false }).$boosted = 'someid';
+    }
+
+    return obj;
   }
 
   async $acceptAPObject(obj: APObject, fullReplace: boolean) {
@@ -202,6 +214,16 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
       throw new HttpError('You are not logged in.', 401);
     }
 
+    if (
+      !this.$skipAcWhenSaving &&
+      (this.$data.type === 'Collection' ||
+        this.$data.type === 'OrderedCollection' ||
+        this.$data.type === 'CollectionPage' ||
+        this.$data.type === 'OrderedCollectionPage')
+    ) {
+      throw new HttpError('Only the server can do that.', 403);
+    }
+
     if (this.$data.user != null) {
       if (this.$data.group == null) {
         this.$data.group = this.$data.user?.group;
@@ -290,6 +312,28 @@ export class SocialObject extends SocialObjectBase<SocialObjectData> {
   public $tilmeldSaveSkipAC() {
     if (this.$skipAcWhenSaving) {
       this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
+  }
+
+  async $delete() {
+    this.$skipAcWhenDeleting = false;
+
+    return await super.$delete();
+  }
+
+  /*
+   * This should *never* be accessible on the client.
+   */
+  public async $deleteSkipAC() {
+    this.$skipAcWhenDeleting = true;
+    return await this.$delete();
+  }
+
+  public $tilmeldDeleteSkipAC() {
+    if (this.$skipAcWhenDeleting) {
+      this.$skipAcWhenDeleting = false;
       return true;
     }
     return false;

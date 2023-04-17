@@ -33,17 +33,23 @@
   {/if}
 </a>
 
-<script lang="ts">
-  import { onMount } from 'svelte';
+<script lang="ts" context="module">
   import type {
     SocialActor as SocialActorClass,
     SocialActorData,
   } from '$lib/entities/SocialActor.js';
+
+  const idMap: { [k: string]: string } = {};
+  const actorMap: { [k: string]: SocialActorClass & SocialActorData } = {};
+</script>
+
+<script lang="ts">
+  import { onMount } from 'svelte';
   import type { SessionStuff } from '$lib/nymph';
   import { getActorIcon } from '$lib/utils/getActorIcon.js';
 
   export let account: string | null | undefined = null;
-  export let actor: (SocialActorClass & SocialActorData) | undefined =
+  export let actor: (SocialActorClass & SocialActorData) | null | undefined =
     undefined;
   export let stuff: SessionStuff;
   let { SocialActor, SocialObject } = stuff;
@@ -61,7 +67,13 @@
         account &&
         (account.match(/^@\S+@\S+$/) || account.match(/^\S+@\S+$/))
       ) {
-        id = await SocialActor.fingerUser(account);
+        if (account in idMap) {
+          id = idMap[account];
+        } else {
+          id = await SocialActor.fingerUser(account);
+          // @ts-ignore
+          idMap[account] = id;
+        }
       }
 
       if (id == null) {
@@ -70,8 +82,15 @@
         return;
       }
 
-      actor = (await SocialObject.getId(id)) as SocialActorClass &
-        SocialActorData;
+      if (id in actorMap) {
+        actor = actorMap[id];
+      } else {
+        actor = await SocialObject.getIdActor(id);
+
+        if (actor) {
+          actorMap[id] = actor;
+        }
+      }
       loading = false;
     }
   });

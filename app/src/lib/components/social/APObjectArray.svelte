@@ -59,6 +59,9 @@
   export let items: (APObject | APLink)[];
   export let expand: boolean;
   export let linkParent = true;
+  export let onlyActivities = false;
+  export let onlyActors = false;
+  export let onlyObjects = false;
   export let stuff: SessionStuff;
 
   let { SocialObject } = stuff;
@@ -66,7 +69,7 @@
 
   let itemsPromise = Promise.all(
     items.map((item) =>
-      SocialObject.getId(typeof item === 'string' ? item : item.href || item.id)
+      getId(typeof item === 'string' ? item : item.href || item.id)
     )
   ).then((entities) => entities.filter((e) => e != null)) as Promise<
     (
@@ -75,4 +78,20 @@
       | (SocialObjectClass & SocialObjectData)
     )[]
   >;
+
+  async function getId(id: string) {
+    if (onlyActivities) {
+      return await SocialObject.getIdActivity(id);
+    }
+
+    if (onlyActors) {
+      return await SocialObject.getIdActor(id);
+    }
+
+    if (onlyObjects) {
+      return await SocialObject.getIdObject(id);
+    }
+
+    return await SocialObject.getId(id);
+  }
 </script>

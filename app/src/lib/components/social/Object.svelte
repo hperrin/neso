@@ -1,13 +1,29 @@
 {#if object.type === 'Collection' || object.type === 'OrderedCollection'}
   <div class:level-bar={levelBar}>
     {#if items}
-      <APObjectArray {items} {expand} {linkParent} {stuff} />
+      <APObjectArray
+        {items}
+        {expand}
+        {linkParent}
+        {onlyActivities}
+        {onlyActors}
+        {onlyObjects}
+        {stuff}
+      />
     {:else if object.first}
       {#await firstPromise}
         Loading...
       {:then firstEntity}
         {#if firstEntity}
-          <svelte:self object={firstEntity} {expand} {linkParent} {stuff} />
+          <svelte:self
+            object={firstEntity}
+            {expand}
+            {linkParent}
+            {onlyActivities}
+            {onlyActors}
+            {onlyObjects}
+            {stuff}
+          />
         {/if}
       {:catch err}
         Error: {err}
@@ -18,16 +34,31 @@
   {#if items}
     <div class="next-scroll-container">
       <!-- TODO: implement infinite scroll -->
-      <APObjectArray {items} {expand} {linkParent} {stuff} />
+      <APObjectArray
+        {items}
+        {expand}
+        {linkParent}
+        {onlyActivities}
+        {onlyActors}
+        {onlyObjects}
+        {stuff}
+      />
     </div>
   {/if}
 {:else}
-  <Paper>
+  <Paper style="margin-bottom: 1em;">
     <Content>
       <div class="post-header">
         <Profile account={author} {stuff} />
         <div>
-          <RelativeDate date={object.published || object.cdate} />
+          <a
+            class="post-link"
+            href={object.id
+              ? `/social/search/${encodeURIComponent(object.id)}`
+              : 'javascript:void(0);'}
+          >
+            <RelativeDate date={object.published || object.cdate} />
+          </a>
 
           {#if linkParent && object.inReplyTo}
             <div class="reply-link">
@@ -59,21 +90,38 @@
             <path fill="currentColor" d={mdiStar} />
           </Icon>
         </IconButton>
-        <IconButton>
-          <Icon component={Svg} viewBox="0 0 24 24">
-            <path fill="currentColor" d={mdiDotsHorizontal} />
-          </Icon>
-        </IconButton>
+        <div style="min-width: 100px;">
+          <IconButton on:click={() => menu.setOpen(true)}>
+            <Icon component={Svg} viewBox="0 0 24 24">
+              <path fill="currentColor" d={mdiDotsHorizontal} />
+            </Icon>
+          </IconButton>
+          <Menu bind:this={menu}>
+            <List>
+              <Item on:SMUI:action={() => (showSource = !showSource)}>
+                <Text>{showSource ? 'Hide' : 'Show'} Source</Text>
+              </Item>
+              <Separator />
+              <Item on:SMUI:action={() => alert('not implemented')}>
+                <Text>Block This Author</Text>
+              </Item>
+            </List>
+          </Menu>
+        </div>
       </div>
     </Content>
+    {#if showSource}
+      <Content>
+        <pre
+          style="max-width: 100%; max-height: 350px; overflow: auto;">{JSON.stringify(
+            object,
+            null,
+            2
+          )}</pre>
+      </Content>
+    {/if}
   </Paper>
 {/if}
-
-<pre style="max-width: 100%; overflow-x: auto;">{JSON.stringify(
-    object,
-    null,
-    2
-  )}</pre>
 
 {#if expand}
   {#await replies}
@@ -82,10 +130,11 @@
     {#if repliesObject && isSocialObject(repliesObject)}
       <svelte:self
         object={repliesObject}
-        {stuff}
         expand
         levelBar
         linkParent={false}
+        onlyObjects
+        {stuff}
       />
     {/if}
   {/await}
@@ -96,8 +145,10 @@
   import { mdiDotsHorizontal, mdiReply, mdiStar, mdiRepeat } from '@mdi/js';
   import sanitizeHtml from 'sanitize-html';
   import Paper, { Content } from '@smui/paper';
-  import { Icon, Svg } from '@smui/common';
+  import Menu from '@smui/menu';
+  import List, { Item, Separator, Text } from '@smui/list';
   import IconButton from '@smui/icon-button';
+  import { Icon, Svg } from '@smui/common';
   import RelativeDate from '$lib/components/RelativeDate.svelte';
   import Profile from '$lib/components/social/Profile.svelte';
   import APObjectArray from '$lib/components/social/APObjectArray.svelte';
@@ -114,11 +165,16 @@
   export let expand: boolean;
   export let levelBar = false;
   export let linkParent = true;
+  export let onlyActivities = false;
+  export let onlyActors = false;
+  export let onlyObjects = false;
   export let stuff: SessionStuff;
 
   let { SocialObject } = stuff;
   $: ({ SocialObject } = stuff);
 
+  let menu: Menu;
+  let showSource = false;
   let sanitizeOptions = {
     allowedTags: [...sanitizeHtml.defaults.allowedTags, 'img'],
     allowedAttributes: {
@@ -165,7 +221,7 @@
 
   $: replies =
     expand && object.replies
-      ? SocialObject.getId(
+      ? SocialObject.getIdObject(
           typeof object.replies === 'string'
             ? object.replies
             : object.replies.href || object.replies.id
@@ -192,14 +248,14 @@
     object.first
       ? Array.isArray(object.first)
         ? typeof object.first[0] === 'string'
-          ? SocialObject.getId(object.first[0])
+          ? SocialObject.getIdObject(object.first[0])
           : object.first[0].href || object.first[0].id
-          ? SocialObject.getId(object.first[0].href || object.first[0].id)
+          ? SocialObject.getIdObject(object.first[0].href || object.first[0].id)
           : Promise.resolve(null)
         : typeof object.first === 'string'
-        ? SocialObject.getId(object.first)
+        ? SocialObject.getIdObject(object.first)
         : object.first.href || object.first.id
-        ? SocialObject.getId(object.first.href || object.first.id)
+        ? SocialObject.getIdObject(object.first.href || object.first.id)
         : Promise.resolve(null)
       : Promise.resolve(null);
 </script>
@@ -214,6 +270,17 @@
   .actions,
   .loading {
     margin-top: 1em;
+  }
+
+  .post-link,
+  .reply-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .post-link:hover,
+  .reply-link:hover {
+    text-decoration: underline;
   }
 
   .reply-link {
