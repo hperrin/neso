@@ -62,7 +62,7 @@
     SocialObject,
     SocialObjectData,
   } from '$lib/entities/SocialObject.js';
-  import { isLink, isObject } from '$lib/utils/checkTypes.js';
+  import { getAuthorId } from '$lib/utils/getAuthorId.js';
   import type { SessionStuff } from '$lib/nymph';
 
   export let object: SocialObject & SocialObjectData;
@@ -87,8 +87,12 @@
     allowProtocolRelative: false,
     transformTags: {
       a: (tagName: string, attribs: { [k: string]: string }) => {
-        attribs.target = '_blank';
-        attribs.rel = 'noopener noreferrer';
+        if (attribs.class.match(/\bmention\b/)) {
+          attribs.href = `/social/search/${encodeURIComponent(attribs.href)}`;
+        } else {
+          attribs.target = '_blank';
+          attribs.rel = 'noopener noreferrer';
+        }
         return {
           tagName,
           attribs,
@@ -106,21 +110,7 @@
 
   $: sanitizedHtml = sanitizeHtml(html.trim(), sanitizeOptions);
 
-  $: author = Array.isArray(object.attributedTo)
-    ? isLink(object.attributedTo[0])
-      ? typeof object.attributedTo[0] === 'string'
-        ? object.attributedTo[0]
-        : object.attributedTo[0].href
-      : isObject(object.attributedTo[0])
-      ? object.attributedTo[0].id
-      : object.attributedTo[0]
-    : isLink(object.attributedTo)
-    ? typeof object.attributedTo === 'string'
-      ? object.attributedTo
-      : object.attributedTo.href
-    : isObject(object.attributedTo)
-    ? object.attributedTo.id
-    : object.attributedTo;
+  $: author = getAuthorId(object);
 </script>
 
 <style>

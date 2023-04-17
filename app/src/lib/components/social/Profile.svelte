@@ -31,6 +31,7 @@
     SocialActorData,
   } from '$lib/entities/SocialActor.js';
   import type { SessionStuff } from '$lib/nymph';
+  import { getActorIcon } from '$lib/utils/getActorIcon.js';
 
   export let account: string | null | undefined = null;
   export let actor: (SocialActorClass & SocialActorData) | undefined =
@@ -42,23 +43,7 @@
   let loading = actor == null;
   let failurMessage: string | null = null;
 
-  $: icon = actor
-    ? Array.isArray(actor.icon)
-      ? typeof actor.icon[0] === 'string'
-        ? actor.icon[0]
-        : actor.icon[0]?.url ||
-          actor.icon[0]?.href ||
-          `https://placehold.co/128x128?text=${encodeURIComponent(
-            actor.name || ':)'
-          )}`
-      : typeof actor.icon === 'string'
-      ? actor.icon
-      : actor.icon?.url ||
-        actor.icon?.href ||
-        `https://placehold.co/128x128?text=${encodeURIComponent(
-          actor.name || ':)'
-        )}`
-    : `https://placehold.co/128x128?text=${encodeURIComponent(':)')}`;
+  $: icon = getActorIcon(actor);
 
   onMount(async () => {
     if (actor == null) {

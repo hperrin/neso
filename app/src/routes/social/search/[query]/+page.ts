@@ -1,6 +1,18 @@
 import { error } from '@sveltejs/kit';
 // import type { Nymph, EntityConstructor } from '@nymphjs/client';
 // import { queryParser } from '@nymphjs/query-parser';
+import type {
+  SocialActor as SocialActorClass,
+  SocialActorData,
+} from '$lib/entities/SocialActor.js';
+import type {
+  SocialObject as SocialObjectClass,
+  SocialObjectData,
+} from '$lib/entities/SocialObject.js';
+import { isSocialActivity } from '$lib/utils/checkTypes.js';
+import { getActorId } from '$lib/utils/getActorId.js';
+import { getObjectId } from '$lib/utils/getObjectId.js';
+import { getTargetId } from '$lib/utils/getTargetId.js';
 import type { PageLoad } from './$types';
 
 // function parseTodoSearch<T extends EntityConstructor>(
@@ -47,13 +59,53 @@ export const load: PageLoad = async ({ params, parent }) => {
   const { search } = stores;
 
   try {
-    let searchQuery = params.query;
+    let searchQuery = params.query.trim();
     search.set(searchQuery);
 
     if (searchQuery.match(/^https?:\/\/\S+$/)) {
-      const result = await SocialObject.getId(searchQuery);
+      let result = await SocialObject.getId(searchQuery);
 
-      return { searchResults: result == null ? [] : [result] };
+      if (result == null) {
+        result = await nymph.getEntity(
+          { class: SocialActor },
+          { type: '&', equal: ['url', searchQuery] }
+        );
+      }
+
+      if (result && isSocialActivity(result)) {
+        let actorId = getActorId(result);
+        let objectId = getObjectId(result);
+        let targetId = getTargetId(result);
+
+        let actor =
+          actorId == null
+            ? null
+            : ((await SocialObject.getId(actorId)) as SocialActorClass &
+                SocialActorData);
+        let object =
+          objectId == null
+            ? null
+            : ((await SocialObject.getId(objectId)) as
+                | (SocialObjectClass & SocialObjectData)
+                | (SocialActorClass & SocialActorData));
+        let target =
+          targetId == null
+            ? null
+            : ((await SocialObject.getId(targetId)) as
+                | (SocialObjectClass & SocialObjectData)
+                | (SocialActorClass & SocialActorData));
+
+        return {
+          searchResults: [{ result, actor, object, target }],
+        };
+      }
+
+      return {
+        searchResults:
+          result == null
+            ? []
+            : [{ result, actor: null, object: null, target: null }],
+      };
     } else if (
       searchQuery.match(/^@\S+@\S+$/) ||
       searchQuery.match(/^\S+@\S+$/)
@@ -62,7 +114,12 @@ export const load: PageLoad = async ({ params, parent }) => {
       const id = await SocialActor.fingerUser(alias);
       const result = id ? await SocialObject.getId(id) : null;
 
-      return { searchResults: result == null ? [] : [result] };
+      return {
+        searchResults:
+          result == null
+            ? []
+            : [{ result, actor: null, object: null, target: null }],
+      };
     } else {
       return { searchResults: [] };
     }

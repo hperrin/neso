@@ -6,19 +6,25 @@
 
 <div class="view-container">
   <div class="list-container" bind:this={listContainer}>
-    {#each searchResults as result (result.guid)}
-      {#if isSocialActivity(result)}
-        <Activity bind:activity={result} />
-      {:else if isSocialActor(result)}
-        <Actor bind:actor={result} />
-      {:else if isSocialObject(result)}
-        <Object bind:object={result} stuff={data} />
+    {#each searchResults as result (result.result.guid)}
+      {#if isSocialActivity(result.result)}
+        <Activity
+          bind:activity={result.result}
+          bind:actor={result.actor}
+          bind:object={result.object}
+          bind:target={result.target}
+          stuff={data}
+        />
+      {:else if isSocialActor(result.result)}
+        <Actor bind:actor={result.result} />
+      {:else if isSocialObject(result.result)}
+        <Object bind:object={result.result} stuff={data} />
       {:else}
         <Paper>
           <Title>Unknown Object Type</Title>
           <Content>
             <pre style="max-width: 100%; overflow-x: auto;">{JSON.stringify(
-                result,
+                result.result,
                 null,
                 2
               )}</pre>
