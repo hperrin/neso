@@ -17,8 +17,6 @@
       class="avatar"
       src="/image-proxy?href={encodeURIComponent(icon)}"
       alt="{actor.name}'s avatar"
-      width="128"
-      height="128"
     />
     <span class="name" style="display: block;">
       <span style="display: block;">

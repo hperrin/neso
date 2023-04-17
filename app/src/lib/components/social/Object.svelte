@@ -30,6 +30,12 @@
       {/await}
     {/if}
   </div>
+  <pre
+    style="max-width: 100%; max-height: 350px; overflow: auto;">{JSON.stringify(
+      object,
+      null,
+      2
+    )}</pre>
 {:else if object.type === 'CollectionPage' || object.type === 'OrderedCollectionPage'}
   {#if items}
     <div class="next-scroll-container">
@@ -45,6 +51,12 @@
       />
     </div>
   {/if}
+  <pre
+    style="max-width: 100%; max-height: 350px; overflow: auto;">{JSON.stringify(
+      object,
+      null,
+      2
+    )}</pre>
 {:else}
   <Paper style="margin-bottom: 1em;">
     <Content>
@@ -121,29 +133,28 @@
       </Content>
     {/if}
   </Paper>
-{/if}
 
-{#if expand}
-  {#await replies}
-    <div class="loading">Loading...</div>
-  {:then repliesObject}
-    {#if repliesObject && isSocialObject(repliesObject)}
-      <svelte:self
-        object={repliesObject}
-        expand
-        levelBar
-        linkParent={false}
-        onlyObjects
-        {stuff}
-      />
-    {/if}
-  {/await}
+  {#if expand}
+    {#await replies}
+      <div class="loading">Loading...</div>
+    {:then repliesObject}
+      {#if repliesObject && isSocialObject(repliesObject)}
+        <svelte:self
+          object={repliesObject}
+          expand
+          levelBar
+          linkParent={false}
+          onlyObjects
+          {stuff}
+        />
+      {/if}
+    {/await}
+  {/if}
 {/if}
 
 <script lang="ts">
   import type { APLink, APObject } from '_activitypub';
   import { mdiDotsHorizontal, mdiReply, mdiStar, mdiRepeat } from '@mdi/js';
-  import sanitizeHtml from 'sanitize-html';
   import Paper, { Content } from '@smui/paper';
   import Menu from '@smui/menu';
   import List, { Item, Separator, Text } from '@smui/list';
@@ -159,6 +170,7 @@
   import { getAuthorId } from '$lib/utils/getAuthorId.js';
   import { getInReplyTo } from '$lib/utils/getInReplyTo.js';
   import { isSocialObject } from '$lib/utils/checkTypes.js';
+  import { sanitize } from '$lib/utils/sanitize.js';
   import type { SessionStuff } from '$lib/nymph';
 
   export let object: SocialObject & SocialObjectData;
@@ -175,38 +187,6 @@
 
   let menu: Menu;
   let showSource = false;
-  let sanitizeOptions = {
-    allowedTags: [...sanitizeHtml.defaults.allowedTags, 'img'],
-    allowedAttributes: {
-      '*': ['dir', 'align', 'alt', 'center', 'bgcolor'],
-      a: ['href', 'name', 'target', 'rel'],
-      img: ['src', 'alt', 'title', 'height', 'width'],
-      tr: ['rowspan'],
-      td: ['colspan', 'rowspan'],
-      th: ['colspan', 'rowspan'],
-      table: ['cellspacing'],
-    },
-    allowedSchemes: ['mailto', 'tel'],
-    allowedSchemesByTag: {
-      img: ['data'],
-      a: ['http', 'https', 'mailto', 'tel'],
-    },
-    allowProtocolRelative: false,
-    transformTags: {
-      a: (tagName: string, attribs: { [k: string]: string }) => {
-        if (attribs.class.match(/\bmention\b/)) {
-          attribs.href = `/social/search/${encodeURIComponent(attribs.href)}`;
-        } else {
-          attribs.target = '_blank';
-          attribs.rel = 'noopener noreferrer';
-        }
-        return {
-          tagName,
-          attribs,
-        };
-      },
-    },
-  };
 
   $: html =
     object.contentMap != null && 'en' in object.contentMap
@@ -215,7 +195,7 @@
       ? object.content
       : '<em>Unrecognized content.</em>';
 
-  $: sanitizedHtml = sanitizeHtml(html.trim(), sanitizeOptions);
+  $: sanitizedHtml = sanitize(html);
 
   $: author = getAuthorId(object);
 
@@ -237,6 +217,14 @@
       ? Array.isArray(object.first.items)
         ? object.first.items
         : [object.first.items]
+      : object.orderedItems
+      ? Array.isArray(object.orderedItems)
+        ? object.orderedItems
+        : [object.orderedItems]
+      : object.first && object.first.orderedItems
+      ? Array.isArray(object.first.orderedItems)
+        ? object.first.orderedItems
+        : [object.first.orderedItems]
       : null
   ) as (APObject | APLink)[] | null;
 

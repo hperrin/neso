@@ -62,6 +62,8 @@
     "@smui/segmented-button": "^7.0.0-beta.3",
     "@smui/select": "^7.0.0-beta.3",
     "@smui/switch": "^7.0.0-beta.3",
+    "@smui/tab": "^7.0.0-beta.3",
+    "@smui/tab-bar": "^7.0.0-beta.3",
     "@smui/textfield": "^7.0.0-beta.3",
     "@smui/top-app-bar": "^7.0.0-beta.3",
     "@smui/touch-target": "^7.0.0-beta.3",

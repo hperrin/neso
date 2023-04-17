@@ -1,42 +1,64 @@
-<div class="activity">
-  <span class="name">
-    {#if actor}
-      {actor.nameMap && 'en' in actor.nameMap ? actor.nameMap.en : actor.name}
-    {:else}
-      Unknown user
+<div class="status-line">
+  <div class="activity">
+    <span class="name">
+      {#if actor}
+        <a
+          class="actor-link"
+          href={actor.id
+            ? `/social/search/${encodeURIComponent(actor.id)}`
+            : 'javascript:void(0);'}
+        >
+          {actor.nameMap && 'en' in actor.nameMap
+            ? actor.nameMap.en
+            : actor.name}
+        </a>
+      {:else}
+        Unknown user
+      {/if}
+    </span>
+
+    <span class="action">
+      {actionMap[activity.type]}
+    </span>
+
+    {#if object}
+      a {object.type.toLowerCase()}
     {/if}
-  </span>
 
-  <span class="action">
-    {actionMap[activity.type]}
-  </span>
+    {#if target}
+      {targetPropositionMap[activity.type] || 'to'} a {target.type.toLowerCase()}
+    {/if}
 
-  {#if object}
-    a {object.type.toLowerCase()}
-  {/if}
+    <span
+      class="date"
+      title={new Date(
+        activity.published || activity.cdate || 0
+      ).toLocaleString()}
+      ><RelativeDate date={activity.published || activity.cdate} /></span
+    >
+  </div>
 
-  {#if target}
-    to a {target.type.toLowerCase()}
-  {/if}
-
-  <span
-    class="date"
-    title={new Date(activity.published || activity.cdate || 0).toLocaleString()}
-    ><RelativeDate date={activity.published || activity.cdate} /></span
+  <a
+    class="source-link"
+    href={'javascript:void(0);'}
+    on:click={() => (showSource = !showSource)}>show source</a
   >
 </div>
 
+{#if showSource}
+  <pre
+    style="max-width: 100%; max-height: 350px; overflow-x: auto;">{JSON.stringify(
+      activity,
+      null,
+      2
+    )}</pre>
+{/if}
+
 {#if object && isSocialObject(object)}
-  <div style="margin-top: 1em;">
+  <div style="margin-top: 1em; margin-bottom: 2em;">
     <Object bind:object {stuff} expand={false} />
   </div>
 {/if}
-
-<pre style="max-width: 100%; overflow-x: auto;">{JSON.stringify(
-    activity,
-    null,
-    2
-  )}</pre>
 
 <script lang="ts">
   import RelativeDate from '$lib/components/RelativeDate.svelte';
@@ -68,7 +90,9 @@
     | null;
   export let stuff: SessionStuff;
 
-  const actionMap = {
+  let showSource = false;
+
+  const actionMap: { [k: string]: string } = {
     Accept: 'accepted',
     TentativeAccept: 'tentatively accepted',
     Add: 'added',
@@ -99,19 +123,41 @@
     Question: 'asked a question',
   };
 
-  const hasTargetMap = {
-    Add: true,
-    Join: true,
-    Leave: true,
-    Offer: true,
-    Invite: true,
-    Remove: true,
-    Move: true,
+  const targetPropositionMap: { [k: string]: string } = {
+    Add: 'to',
+    Join: '',
+    Leave: '',
+    Offer: 'to',
+    Invite: 'to',
+    Remove: 'from',
+    Move: 'to',
   };
 </script>
 
 <style>
+  .status-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   .activity .name {
     font-weight: bold;
+  }
+
+  .actor-link,
+  .source-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .actor-link:hover,
+  .source-link:hover {
+    text-decoration: underline;
+  }
+
+  .source-link {
+    font-size: small;
+    opacity: 0.4;
   }
 </style>

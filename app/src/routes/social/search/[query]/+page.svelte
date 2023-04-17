@@ -16,7 +16,7 @@
           stuff={data}
         />
       {:else if isSocialActor(result.result)}
-        <Actor bind:actor={result.result} />
+        <Actor bind:actor={result.result} expand stuff={data} />
       {:else if isSocialObject(result.result)}
         <Object bind:object={result.result} expand stuff={data} />
       {:else}
