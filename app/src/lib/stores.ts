@@ -7,6 +7,8 @@ import type {
   UserClass,
   SettingsClass,
   SettingsData,
+  SocialObjectClass,
+  SocialObjectData,
 } from '$lib/nymph.js';
 
 export type Stores = {
@@ -21,6 +23,7 @@ export type Stores = {
   tilmeldAdmin: Writable<boolean | undefined>;
   systemAdmin: Writable<boolean | undefined>;
   search: Writable<string>;
+  inReplyTo: Writable<(SocialObjectClass & SocialObjectData) | undefined>;
   loading: Writable<boolean>;
   smallWindow: Writable<boolean>;
   miniWindow: Writable<boolean>;
@@ -71,9 +74,12 @@ export default function stores(
   const tilmeldAdmin = writable<boolean | undefined>(undefined);
   const systemAdmin = writable<boolean | undefined>(undefined);
 
-  // Todo Related
+  // Social Related
 
   const search = writable<string>('');
+  const inReplyTo = writable<
+    (SocialObjectClass & SocialObjectData) | undefined
+  >();
 
   // Global
 
@@ -138,6 +144,7 @@ export default function stores(
 
       settings.set(Settings.factorySync());
       search.set('');
+      inReplyTo.set(undefined);
 
       settingsReadyPromiseResolve();
 
@@ -168,6 +175,7 @@ export default function stores(
     tilmeldAdmin,
     systemAdmin,
     search,
+    inReplyTo,
     loading,
     smallWindow,
     miniWindow,

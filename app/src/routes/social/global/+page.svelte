@@ -2,7 +2,7 @@
   feed="global"
   {activities}
   emptyMessage="Your instance's view of the world is empty!"
-  stuff={data}
+  bind:stuff={data}
 />
 
 <script lang="ts">

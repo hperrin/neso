@@ -2,7 +2,7 @@
   feed="notifications"
   {activities}
   emptyMessage="No notifications yet. Time to explore!"
-  stuff={data}
+  bind:stuff={data}
 />
 
 <script lang="ts">

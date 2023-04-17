@@ -7,14 +7,25 @@
 />
 
 <div
-  style="display: flex; margin-top: 1em; justify-content: end; align-items: center;"
+  style="display: flex; margin-top: 1em; justify-content: space-between; align-items: center;"
 >
-  {#if success}
-    <div>Success!</div>
-  {/if}
-  <Button disabled={text === '' || loading} on:click={post}>
-    <Label>Post!</Label>
-  </Button>
+  <div style="font-size: small;">
+    {#if $inReplyTo}
+      Replying to a&nbsp;<a
+        href={$inReplyTo.id
+          ? `/social/search/${encodeURIComponent($inReplyTo.id)}`
+          : 'javascript:void(0);'}>post</a
+      >
+    {/if}
+  </div>
+  <div>
+    {#if success}
+      <div>Success!</div>
+    {/if}
+    <Button disabled={text === '' || loading} on:click={post}>
+      <Label>Post!</Label>
+    </Button>
+  </div>
 </div>
 
 {#if failureMessage}
@@ -31,8 +42,10 @@
 
   export let stuff: SessionStuff;
 
-  let { SocialObject } = stuff;
-  $: ({ SocialObject } = stuff);
+  let { SocialObject, stores } = stuff;
+  $: ({ SocialObject, stores } = stuff);
+  let { inReplyTo } = stores;
+  $: ({ inReplyTo } = stores);
 
   let text = '';
   let success = false;
@@ -55,10 +68,15 @@
       object.type = 'Note';
       object.content = escapeHTML(text);
 
+      if ($inReplyTo && $inReplyTo.id) {
+        object.inReplyTo = $inReplyTo.id;
+      }
+
       if (!(await object.$send())) {
         failureMessage = "Couldn't send post.";
       } else {
         text = '';
+        $inReplyTo = undefined;
         success = true;
         failureMessage = undefined;
 

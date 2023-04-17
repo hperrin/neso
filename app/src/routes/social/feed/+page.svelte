@@ -2,7 +2,7 @@
   feed="home"
   {activities}
   emptyMessage="Your feed is empty!"
-  stuff={data}
+  bind:stuff={data}
 />
 
 <script lang="ts">

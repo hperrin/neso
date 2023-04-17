@@ -8,12 +8,12 @@
         actor={entry.actor || null}
         object={entry.object || null}
         target={entry.target || null}
-        {stuff}
+        bind:stuff
       />
     {:else if isSocialActor(entry.entity)}
-      <Actor bind:actor={entry.entity} expand={false} {stuff} />
+      <Actor bind:actor={entry.entity} expand={false} bind:stuff />
     {:else if isSocialObject(entry.entity)}
-      <Object bind:object={entry.entity} {expand} {linkParent} {stuff} />
+      <Object bind:object={entry.entity} {expand} {linkParent} bind:stuff />
     {:else}
       <Paper>
         <Title>Unknown Object Type</Title>

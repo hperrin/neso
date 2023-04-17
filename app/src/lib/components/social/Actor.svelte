@@ -95,7 +95,12 @@
       <div class="loading">Loading...</div>
     {:then outboxObject}
       {#if outboxObject}
-        <Object object={outboxObject} expand={false} onlyActivities {stuff} />
+        <Object
+          object={outboxObject}
+          expand={false}
+          onlyActivities
+          bind:stuff
+        />
       {/if}
     {/await}
   {:else if activeTab === 'Followers'}
@@ -103,7 +108,7 @@
       <div class="loading">Loading...</div>
     {:then followersObject}
       {#if followersObject}
-        <Object object={followersObject} expand={false} onlyActors {stuff} />
+        <Object object={followersObject} expand={false} onlyActors bind:stuff />
       {/if}
     {/await}
   {:else if activeTab === 'Following'}
@@ -111,7 +116,7 @@
       <div class="loading">Loading...</div>
     {:then followingObject}
       {#if followingObject}
-        <Object object={followingObject} expand={false} onlyActors {stuff} />
+        <Object object={followingObject} expand={false} onlyActors bind:stuff />
       {/if}
     {/await}
   {/if}

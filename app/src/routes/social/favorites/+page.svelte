@@ -2,7 +2,7 @@
   feed="favorites"
   {activities}
   emptyMessage="You've got no favorites yet. Time to explore!"
-  stuff={data}
+  bind:stuff={data}
 />
 
 <script lang="ts">

@@ -70,7 +70,7 @@
     </List>
 
     <div style="padding: 16px;">
-      <Post stuff={data} />
+      <Post bind:stuff={data} />
     </div>
   </div>
 

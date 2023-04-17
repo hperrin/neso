@@ -2,7 +2,7 @@
   feed="local"
   {activities}
   emptyMessage="Your instance is quiet. Too quiet."
-  stuff={data}
+  bind:stuff={data}
 />
 
 <script lang="ts">

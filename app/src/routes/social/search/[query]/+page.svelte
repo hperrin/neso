@@ -13,12 +13,12 @@
           bind:actor={result.actor}
           bind:object={result.object}
           bind:target={result.target}
-          stuff={data}
+          bind:stuff={data}
         />
       {:else if isSocialActor(result.result)}
-        <Actor bind:actor={result.result} expand stuff={data} />
+        <Actor bind:actor={result.result} expand bind:stuff={data} />
       {:else if isSocialObject(result.result)}
-        <Object bind:object={result.result} expand stuff={data} />
+        <Object bind:object={result.result} expand bind:stuff={data} />
       {:else}
         <Paper>
           <Title>Unknown Object Type</Title>

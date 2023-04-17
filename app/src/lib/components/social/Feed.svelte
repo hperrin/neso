@@ -8,7 +8,7 @@
         actor={entry.actor || null}
         object={entry.object || null}
         target={entry.target || null}
-        {stuff}
+        bind:stuff
       />
     {:else}
       {emptyMessage}

@@ -10,7 +10,7 @@
         {onlyActivities}
         {onlyActors}
         {onlyObjects}
-        {stuff}
+        bind:stuff
       />
     {:else if object.first}
       {#await firstPromise}
@@ -24,7 +24,7 @@
             {onlyActivities}
             {onlyActors}
             {onlyObjects}
-            {stuff}
+            bind:stuff
           />
         {/if}
       {:catch err}
@@ -43,7 +43,7 @@
         {onlyActivities}
         {onlyActors}
         {onlyObjects}
-        {stuff}
+        bind:stuff
         on:load={handleObjectArrayLoaded}
       />
     </div>
@@ -58,7 +58,7 @@
         {onlyActivities}
         {onlyActors}
         {onlyObjects}
-        {stuff}
+        bind:stuff
       />
     {/if}
   {/await}
@@ -66,7 +66,7 @@
   <Paper style="margin-bottom: 1em;">
     <Content>
       <div class="post-header">
-        <Profile account={author} {stuff} />
+        <Profile account={author} bind:stuff />
         <div>
           <a
             class="post-link"
@@ -92,7 +92,7 @@
         {@html sanitizedHtml}
       </div>
       <div class="actions">
-        <IconButton>
+        <IconButton on:click={() => ($inReplyTo = object)}>
           <Icon component={Svg} viewBox="0 0 24 24">
             <path fill="currentColor" d={mdiReply} />
           </Icon>
@@ -150,7 +150,7 @@
           levelBar
           linkParent={false}
           onlyObjects
-          {stuff}
+          bind:stuff
         />
       {/if}
     {/await}
@@ -187,8 +187,10 @@
   export let onlyObjects = false;
   export let stuff: SessionStuff;
 
-  let { SocialObject } = stuff;
-  $: ({ SocialObject } = stuff);
+  let { SocialObject, stores } = stuff;
+  $: ({ SocialObject, stores } = stuff);
+  let { inReplyTo } = stores;
+  $: ({ inReplyTo } = stores);
 
   let menu: Menu;
   let nextScrollContainer: HTMLDivElement;
