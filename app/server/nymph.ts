@@ -19,26 +19,22 @@ import { MySQLDriver } from '@nymphjs/driver-mysql';
 import { SQLite3Driver } from '@nymphjs/driver-sqlite3';
 
 import handleOnboarding from './utils/handleOnboarding.js';
-import { Project as ProjectClass } from './entities/Project.js';
-import type { ProjectData } from './entities/Project.js';
 import { Settings as SettingsClass } from './entities/Settings.js';
 import type { SettingsData } from './entities/Settings.js';
-import { Todo as TodoClass } from './entities/Todo.js';
-import type { TodoData } from './entities/Todo.js';
 import { AuthClient as AuthClientClass } from './entities/AuthClient.js';
 import type { AuthClientData } from './entities/AuthClient.js';
 import { AuthCode as AuthCodeClass } from './entities/AuthCode.js';
 import type { AuthCodeData } from './entities/AuthCode.js';
 import { AuthToken as AuthTokenClass } from './entities/AuthToken.js';
 import type { AuthTokenData } from './entities/AuthToken.js';
+import { SocialContext as SocialContextClass } from './entities/SocialContext.js';
+import type { SocialContextData } from './entities/SocialContext.js';
+import { SocialDelivery as SocialDeliveryClass } from './entities/SocialDelivery.js';
+import type { SocialDeliveryData } from './entities/SocialDelivery.js';
 import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
 import type { SocialActivityData } from './entities/SocialActivity.js';
 import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
 import type { SocialActorData } from './entities/SocialActor.js';
-import { SocialCollection as SocialCollectionClass } from './entities/SocialCollection.js';
-import type { SocialCollectionData } from './entities/SocialCollection.js';
-import { SocialCollectionEntry as SocialCollectionEntryClass } from './entities/SocialCollectionEntry.js';
-import type { SocialCollectionEntryData } from './entities/SocialCollectionEntry.js';
 import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
 import type { SocialObjectData } from './entities/SocialObject.js';
 import { SocialObjectBase as SocialObjectBaseClass } from './entities/SocialObjectBase.js';
@@ -63,26 +59,22 @@ const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD;
 const MYSQL_CA_CERT = process.env.MYSQL_CA_CERT;
 
 export type {
-  ProjectClass,
-  ProjectData,
   SettingsClass,
   SettingsData,
-  TodoClass,
-  TodoData,
   AuthClientClass,
   AuthClientData,
   AuthCodeClass,
   AuthCodeData,
   AuthTokenClass,
   AuthTokenData,
+  SocialContextClass,
+  SocialContextData,
+  SocialDeliveryClass,
+  SocialDeliveryData,
   SocialActivityClass,
   SocialActivityData,
   SocialActorClass,
   SocialActorData,
-  SocialCollectionClass,
-  SocialCollectionData,
-  SocialCollectionEntryClass,
-  SocialCollectionEntryData,
   SocialObjectClass,
   SocialObjectData,
   SocialObjectBaseClass,
@@ -94,16 +86,14 @@ export type NymphInstance = {
   tilmeld: Tilmeld;
   User: typeof UserClass;
   Group: typeof GroupClass;
-  Project: typeof ProjectClass;
   Settings: typeof SettingsClass;
-  Todo: typeof TodoClass;
   AuthClient: typeof AuthClientClass;
   AuthCode: typeof AuthCodeClass;
   AuthToken: typeof AuthTokenClass;
+  SocialContext: typeof SocialContextClass;
+  SocialDelivery: typeof SocialDeliveryClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
-  SocialCollection: typeof SocialCollectionClass;
-  SocialCollectionEntry: typeof SocialCollectionEntryClass;
   SocialObject: typeof SocialObjectClass;
   SocialObjectBase: typeof SocialObjectBaseClass;
   restMiddleware: Express;
@@ -153,16 +143,14 @@ export function getNymphInstance({
   let driver: NymphDriver = null as unknown as NymphDriver;
   let User = UserClass;
   let Group = GroupClass;
-  let Project = ProjectClass;
   let Settings = SettingsClass;
-  let Todo = TodoClass;
   let AuthClient = AuthClientClass;
   let AuthCode = AuthCodeClass;
   let AuthToken = AuthTokenClass;
+  let SocialContext = SocialContextClass;
+  let SocialDelivery = SocialDeliveryClass;
   let SocialActivity = SocialActivityClass;
   let SocialActor = SocialActorClass;
-  let SocialCollection = SocialCollectionClass;
-  let SocialCollectionEntry = SocialCollectionEntryClass;
   let SocialObject = SocialObjectClass;
   let SocialObjectBase = SocialObjectBaseClass;
   let restMiddleware: Express = express();
@@ -220,25 +208,26 @@ export function getNymphInstance({
       nymph
     );
 
-    Project = nymph.addEntityClass(ProjectClass);
     Settings = nymph.addEntityClass(SettingsClass);
-    Todo = nymph.addEntityClass(TodoClass);
     AuthClient = nymph.addEntityClass(AuthClientClass);
     AuthCode = nymph.addEntityClass(AuthCodeClass);
     AuthToken = nymph.addEntityClass(AuthTokenClass);
+    SocialContext = nymph.addEntityClass(SocialContextClass);
+    SocialDelivery = nymph.addEntityClass(SocialDeliveryClass);
     SocialActivity = nymph.addEntityClass(SocialActivityClass);
     SocialActor = nymph.addEntityClass(SocialActorClass);
-    SocialCollection = nymph.addEntityClass(SocialCollectionClass);
-    SocialCollectionEntry = nymph.addEntityClass(SocialCollectionEntryClass);
     SocialObject = nymph.addEntityClass(SocialObjectClass);
     SocialObjectBase = nymph.addEntityClass(SocialObjectBaseClass);
+
+    SocialActivity.ADDRESS = ADDRESS;
+    SocialObject.ADDRESS = ADDRESS;
 
     User = tilmeld.User;
     Group = tilmeld.Group;
 
     User.on('afterRegister', async (user) => {
       if (user.username != 'root') {
-        await handleOnboarding(user);
+        await handleOnboarding(user, ADDRESS);
       }
     });
 
@@ -256,16 +245,14 @@ export function getNymphInstance({
     tilmeld,
     User,
     Group,
-    Project,
     Settings,
-    Todo,
     AuthClient,
     AuthCode,
     AuthToken,
+    SocialContext,
+    SocialDelivery,
     SocialActivity,
     SocialActor,
-    SocialCollection,
-    SocialCollectionEntry,
     SocialObject,
     SocialObjectBase,
     restMiddleware,

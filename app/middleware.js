@@ -46,13 +46,14 @@ const apex = buildApex(nymph);
 
 const apexRunner = (middlewares) => {
   return async (req, res, next) => {
-    // TODO: This is unsafe. It should require XSRF token or a local connection.
     if ('TILMELDAUTH' in (req.cookies ?? {})) {
       const authNymph = nymph.clone();
       authNymph.tilmeld.request = req;
       authNymph.tilmeld.response = res;
-      if (authNymph.tilmeld.authenticate(true)) {
-        res.locals.apex.authorizedUserId = `${AP_USER_ID_PREFIX}${authNymph.tilmeld.currentUser.username}`;
+      if (authNymph.tilmeld.authenticate()) {
+        res.locals.apex.authorizedUserId = `${AP_USER_ID_PREFIX(ADDRESS)}${
+          authNymph.tilmeld.currentUser.username
+        }`;
       }
     }
 
@@ -110,6 +111,30 @@ nesoMiddleware.get(
 );
 nesoMiddleware.get('/nodeinfo/:version', apexRunner(apex.net.nodeInfo.get));
 nesoMiddleware.post('/proxy', apexRunner(apex.net.proxy.post));
+
+for (const path in [
+  AP_ROUTES.inbox,
+  AP_ROUTES.outbox,
+  AP_ROUTES.actor,
+  AP_ROUTES.followers,
+  AP_ROUTES.following,
+  AP_ROUTES.liked,
+  AP_ROUTES.object,
+  AP_ROUTES.activity,
+  AP_ROUTES.shares,
+  AP_ROUTES.likes,
+  '/.well-known/webfinger',
+  '/.well-known/nodeinfo',
+  '/nodeinfo/:version',
+  '/proxy',
+]) {
+  nesoMiddleware.use(path, (req, res, next) => {
+    if (!res.headersSent) {
+      res.status(500);
+      res.send({ message: 'Unknown error.' });
+    }
+  });
+}
 
 // list of valid scopes
 const VALID_SCOPES = ['read', 'write', 'follow'];
@@ -443,6 +468,12 @@ const oauthAuthenticateMiddleware = (options) => {
         const token = await oauth.authenticate(request, response, options);
         res.locals.oauth = { token: token };
         res.locals.user = token.user;
+        if (!res.locals.apex) {
+          res.locals.apex = {};
+        }
+        res.locals.apex.authorizedUserId = `${AP_USER_ID_PREFIX(ADDRESS)}${
+          token.user.username
+        }`;
         next();
       } catch (e) {
         if (e instanceof UnauthorizedRequestError) {

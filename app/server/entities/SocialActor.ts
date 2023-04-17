@@ -1,12 +1,16 @@
 import type { Selector } from '@nymphjs/nymph';
-import { nymphJoiProps } from '@nymphjs/nymph';
+import { nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
 import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
 import type { SchemaMap } from 'joi';
 import type { PublicKey, Endpoints, APActor } from '_activitypub';
 
-import { SocialObjectBase, apObjectJoiBuilder } from './SocialObjectBase.js';
+import {
+  SocialObjectBase,
+  apObjectJoiBuilder,
+  apObjectJoi,
+} from './SocialObjectBase.js';
 import type { SocialObjectBaseData } from './SocialObjectBase.js';
 import { socialObjectJoiProps } from './SocialObject.js';
 
@@ -23,6 +27,8 @@ export type SocialActorData = SocialObjectBaseData & {
   streams?: string[];
   endpoints?: Endpoints | string;
   publicKey?: PublicKey;
+
+  _meta?: { privateKey?: string };
 };
 
 export class SocialActor extends SocialObjectBase<SocialActorData> {
@@ -30,7 +36,22 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
   static class = 'SocialActor';
 
   protected $privateData = ['_meta'];
-  protected $protectedData = ['id'];
+  protected $protectedData = [
+    'id',
+    'type',
+    'inbox',
+    'outbox',
+    'following',
+    'followers',
+    'liked',
+    'preferredUsername',
+    'streams',
+    'endpoints',
+    'publicKey',
+  ];
+
+  private $skipAcWhenSaving = false;
+  private $skipAcWhenDeleting = false;
 
   static async factory(guid?: string): Promise<SocialActor & SocialActorData> {
     return (await super.factory(guid)) as SocialActor & SocialActorData;
@@ -104,9 +125,45 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
   }
 
   async $save() {
-    if (!this.$nymph.tilmeld?.gatekeeper()) {
+    if (!this.$skipAcWhenSaving && !this.$nymph.tilmeld?.gatekeeper()) {
       // Only allow logged in users to save.
       throw new HttpError('You are not logged in.', 401);
+    }
+
+    if (this.$data.user != null) {
+      if (this.$data.group == null) {
+        this.$data.group = this.$data.user?.group;
+      }
+
+      if (this.$data.acUser == null) {
+        this.$data.acUser = TilmeldAccessLevels.FULL_ACCESS;
+      }
+      if (this.$data.acGroup == null) {
+        this.$data.acGroup = TilmeldAccessLevels.FULL_ACCESS;
+      }
+      if (this.$data.acOther == null) {
+        this.$data.acOther = TilmeldAccessLevels.READ_ACCESS;
+      }
+
+      if (this.$data.acRead == null) {
+        this.$data.acRead = [];
+      }
+      if (this.$data.acWrite == null) {
+        this.$data.acWrite = [];
+      }
+      if (this.$data.acFull == null) {
+        this.$data.acFull = [];
+      }
+    } else {
+      if (this.$data.acUser == null) {
+        this.$data.acUser = TilmeldAccessLevels.READ_ACCESS;
+      }
+      if (this.$data.acGroup == null) {
+        this.$data.acGroup = TilmeldAccessLevels.READ_ACCESS;
+      }
+      if (this.$data.acOther == null) {
+        this.$data.acOther = TilmeldAccessLevels.READ_ACCESS;
+      }
     }
 
     // Check that this actor doesn't already exist.
@@ -136,24 +193,59 @@ export class SocialActor extends SocialObjectBase<SocialActorData> {
     try {
       Joi.attempt(
         this.$getValidatable(),
-        apActorJoiBuilder({
-          ...nymphJoiProps,
-          ...tilmeldJoiProps,
-
-          ...socialObjectJoiProps,
-          ...socialActorJoiProps,
-        }),
+        nymphSocialActorJoi,
         'Invalid SocialActor: '
       );
     } catch (e: any) {
       throw new HttpError(e.message, 400);
     }
 
-    if (JSON.stringify(this.$getValidatable()).length > 50 * 1024) {
-      throw new HttpError('This server has a max of 50KiB for actors.', 413);
+    if (JSON.stringify(this.$getValidatable()).length > 200 * 1024) {
+      throw new HttpError('This server has a max of 200KiB for actors.', 413);
     }
 
     return await super.$save();
+  }
+
+  /*
+   * This should *never* be accessible on the client.
+   */
+  public async $saveSkipAC() {
+    this.$skipAcWhenSaving = true;
+    return await this.$save();
+  }
+
+  public $tilmeldSaveSkipAC() {
+    if (this.$skipAcWhenSaving) {
+      this.$skipAcWhenSaving = false;
+      return true;
+    }
+    return false;
+  }
+
+  async $delete() {
+    if (!this.$skipAcWhenDeleting) {
+      throw new HttpError('Only allowed by the server.', 403);
+    }
+    this.$skipAcWhenDeleting = false;
+
+    return await super.$delete();
+  }
+
+  /*
+   * This should *never* be accessible on the client.
+   */
+  public async $deleteSkipAC() {
+    this.$skipAcWhenDeleting = true;
+    return await this.$delete();
+  }
+
+  public $tilmeldDeleteSkipAC() {
+    if (this.$skipAcWhenDeleting) {
+      this.$skipAcWhenDeleting = false;
+      return true;
+    }
+    return false;
   }
 }
 
@@ -169,28 +261,53 @@ export const apActorEndpointsJoi = Joi.object().keys({
 export const apActorPublicKeyJoi = Joi.object().keys({
   id: Joi.string().uri(),
   owner: Joi.string().uri(),
-  publicKeyPem: Joi.string().max(8192),
+  publicKeyPem: Joi.string(),
 });
 
-export const apActorJoiBuilder = (additionalKeys: SchemaMap<any> = {}) =>
-  apObjectJoiBuilder({
-    inbox: Joi.string().uri().required(),
-    outbox: Joi.string().uri().required(),
-    following: Joi.string().uri(),
-    followers: Joi.string().uri(),
-    liked: Joi.string().uri(),
-    name: Joi.string().max(240),
-    preferredUsername: Joi.string().max(128).trim(false),
-    summary: Joi.string().max(5000),
-    streams: Joi.array().items(Joi.string().uri()),
-    endpoints: apActorEndpointsJoi,
-    publicKey: apActorPublicKeyJoi,
+export const apActorJoiProps = {
+  inbox: Joi.string().uri().required(),
+  outbox: Joi.string().uri().required(),
+  following: Joi.string().uri(),
+  followers: Joi.string().uri(),
+  liked: Joi.string().uri(),
+  name: Joi.string(),
+  preferredUsername: Joi.string().trim(false),
+  summary: Joi.string(),
+  streams: Joi.array().items(Joi.string().uri()),
+  endpoints: apActorEndpointsJoi,
+  publicKey: apActorPublicKeyJoi,
+};
 
-    ...additionalKeys,
-  });
+export const apActorJoiBuilder = (
+  additionalKeys: SchemaMap<any> = {},
+  id: string
+) =>
+  apObjectJoiBuilder(
+    {
+      ...apActorJoiProps,
+      ...additionalKeys,
+    },
+    id
+  );
+
+export const apActorJoi = apActorJoiBuilder({}, 'APActor');
 
 export const socialActorJoiProps = {
   type: Joi.any()
     .valid('Application', 'Group', 'Organization', 'Person', 'Service')
     .required(),
 };
+
+export const nymphSocialActorJoi = apActorJoiBuilder(
+  {
+    ...nymphJoiProps,
+    ...tilmeldJoiProps,
+
+    ...socialObjectJoiProps,
+    ...socialActorJoiProps,
+
+    // This is needed for "APObject" links.
+    __OBJECT: apObjectJoi,
+  },
+  'Root'
+);

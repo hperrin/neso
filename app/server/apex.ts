@@ -1,5 +1,7 @@
-import type { Nymph } from '@nymphjs/nymph';
+import { generateKeyPair } from 'node:crypto';
+import type { Nymph, Options, Selector } from '@nymphjs/nymph';
 import { guid } from '@nymphjs/guid';
+import { HttpError } from '@nymphjs/server';
 import { User as UserClass } from '@nymphjs/tilmeld';
 import type {
   IApexStore,
@@ -12,17 +14,13 @@ import type {
 } from 'activitypub-express';
 import ActivitypubExpress from 'activitypub-express';
 
+import { SocialContext as SocialContextClass } from './entities/SocialContext.js';
+import { SocialDelivery as SocialDeliveryClass } from './entities/SocialDelivery.js';
 import { SocialActivity as SocialActivityClass } from './entities/SocialActivity.js';
-import type { SocialActivityData } from './entities/SocialActivity.js';
 import { SocialActor as SocialActorClass } from './entities/SocialActor.js';
-import type { SocialActorData } from './entities/SocialActor.js';
-import { SocialCollection as SocialCollectionClass } from './entities/SocialCollection.js';
-import type { SocialCollectionData } from './entities/SocialCollection.js';
-import { SocialCollectionEntry as SocialCollectionEntryClass } from './entities/SocialCollectionEntry.js';
-import type { SocialCollectionEntryData } from './entities/SocialCollectionEntry.js';
 import { SocialObject as SocialObjectClass } from './entities/SocialObject.js';
-import type { SocialObjectData } from './entities/SocialObject.js';
 
+import { DOMAIN, ADDRESS } from './nymph.js';
 import {
   AP_ROUTES,
   AP_USER_ID_PREFIX,
@@ -37,135 +35,220 @@ import { isActivity, isActor, isObject } from './utils/checkTypes.js';
 export function buildApex(nymph: Nymph) {
   const store = new ApexStore(nymph);
 
-  return ActivitypubExpress({
+  const apex = ActivitypubExpress({
     name: 'Neso',
-    version: process.env.npm_package_version,
+    version: '1.0.0',
     openRegistrations: false,
     nodeInfoMetadata: {},
-    baseUrl: 'http://127.0.0.1:5173',
-    domain: '127.0.0.1',
+    baseUrl: ADDRESS,
+    domain: DOMAIN,
     actorParam: 'actor',
     objectParam: 'id',
     activityParam: 'id',
     routes: AP_ROUTES,
     store,
     endpoints: {
-      uploadMedia: 'https://localhost/upload',
-      oauthAuthorizationEndpoint: 'https://localhost/auth/authorize',
-      proxyUrl: 'https://localhost/proxy',
+      uploadMedia: `${ADDRESS}/upload`,
+      oauthAuthorizationEndpoint: `${ADDRESS}/oauth/authorize`,
+      proxyUrl: `${ADDRESS}/proxy`,
     },
   });
+
+  store.setApex(apex);
+
+  return apex;
 }
 
 class ApexStore implements IApexStore {
   nymph: Nymph;
   User: typeof UserClass;
+  SocialContext: typeof SocialContextClass;
+  SocialDelivery: typeof SocialDeliveryClass;
   SocialActivity: typeof SocialActivityClass;
   SocialActor: typeof SocialActorClass;
-  SocialCollection: typeof SocialCollectionClass;
-  SocialCollectionEntry: typeof SocialCollectionEntryClass;
   SocialObject: typeof SocialObjectClass;
+
+  apex: ReturnType<typeof ActivitypubExpress>;
 
   constructor(nymph: Nymph) {
     this.nymph = nymph;
     this.User = nymph.getEntityClass(UserClass.class) as typeof UserClass;
+    this.SocialContext = nymph.getEntityClass(
+      SocialContextClass.class
+    ) as typeof SocialContextClass;
+    this.SocialDelivery = nymph.getEntityClass(
+      SocialDeliveryClass.class
+    ) as typeof SocialDeliveryClass;
     this.SocialActivity = nymph.getEntityClass(
       SocialActivityClass.class
     ) as typeof SocialActivityClass;
     this.SocialActor = nymph.getEntityClass(
       SocialActorClass.class
     ) as typeof SocialActorClass;
-    this.SocialCollection = nymph.getEntityClass(
-      SocialCollectionClass.class
-    ) as typeof SocialCollectionClass;
-    this.SocialCollectionEntry = nymph.getEntityClass(
-      SocialCollectionEntryClass.class
-    ) as typeof SocialCollectionEntryClass;
     this.SocialObject = nymph.getEntityClass(
       SocialObjectClass.class
     ) as typeof SocialObjectClass;
+
+    this.apex = {} as unknown as ReturnType<typeof ActivitypubExpress>;
+  }
+
+  setApex(apex: ReturnType<typeof ActivitypubExpress>) {
+    this.apex = apex;
   }
 
   async setup(_optionalActor: APEXActor) {
-    // TODO
     console.log('setup');
   }
 
-  async getObject(id: string, includeMeta: boolean) {
-    // console.log('getObject', { id, includeMeta });
-    if (id.startsWith(AP_USER_ID_PREFIX)) {
-      const username = id.substring(AP_USER_ID_PREFIX.length);
-      const user = await this.User.factoryUsername(username);
-
-      if (!user) {
-        throw new Error('Not found.');
-      }
-
-      return {
-        type: 'Person',
-        id: `${AP_USER_ID_PREFIX}${user.username}`,
-        name: user.name,
-        preferredUsername: user.username,
-        inbox: `${AP_USER_INBOX_PREFIX}${user.username}`,
-        outbox: `${AP_USER_OUTBOX_PREFIX}${user.username}`,
-        followers: `${AP_USER_FOLLOWERS_PREFIX}${user.username}`,
-        following: `${AP_USER_FOLLOWING_PREFIX}${user.username}`,
-        liked: `${AP_USER_LIKED_PREFIX}${user.username}`,
-      } as APEXActor;
-    }
+  async getObject(id: string, includeMeta?: boolean) {
+    console.log('getObject', { id, includeMeta });
 
     // Look for an actor.
     const actor = await this.SocialActor.factoryId(id);
-    if (actor != null) {
-      return (await actor.$toAPObject(includeMeta)) as APEXActor;
+    if (actor.guid != null) {
+      return await this.apex.fromJSONLD(
+        (await actor.$toAPObject(!!includeMeta)) as APEXActor
+      );
+    } else if (id.startsWith(AP_USER_ID_PREFIX(ADDRESS))) {
+      // This is a user who doesn't have an actor object yet. Let's make them
+      // one.
+      const username = id.substring(AP_USER_ID_PREFIX(ADDRESS).length);
+      const user = await this.User.factoryUsername(username);
+
+      if (user.guid == null) {
+        return null;
+      }
+
+      actor.$acceptAPObject(
+        {
+          type: 'Person',
+          id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
+          name: user.name,
+          preferredUsername: user.username,
+          inbox: `${AP_USER_INBOX_PREFIX(ADDRESS)}${user.username}`,
+          outbox: `${AP_USER_OUTBOX_PREFIX(ADDRESS)}${user.username}`,
+          followers: `${AP_USER_FOLLOWERS_PREFIX(ADDRESS)}${user.username}`,
+          following: `${AP_USER_FOLLOWING_PREFIX(ADDRESS)}${user.username}`,
+          liked: `${AP_USER_LIKED_PREFIX(ADDRESS)}${user.username}`,
+        } as APEXActor,
+        true
+      );
+
+      // Create a key pair.
+      const [publicKey, privateKey] = await new Promise<[string, string]>(
+        (resolve, reject) =>
+          generateKeyPair(
+            'rsa',
+            {
+              modulusLength: 4096,
+              publicKeyEncoding: {
+                type: 'spki',
+                format: 'pem',
+              },
+              privateKeyEncoding: {
+                type: 'pkcs8',
+                format: 'pem',
+              },
+            },
+            (error, publicKey, privateKey) => {
+              if (error) {
+                reject(error);
+              }
+              resolve([publicKey, privateKey]);
+            }
+          )
+      );
+
+      actor.user = user;
+      actor.publicKey = {
+        id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}#main-key`,
+        owner: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
+        publicKeyPem: publicKey,
+      };
+      actor._meta = {
+        privateKey,
+      };
+
+      try {
+        if (!(await actor.$saveSkipAC())) {
+          throw new Error("Couldn't create actor for user.");
+        }
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
+
+      return await this.apex.fromJSONLD(
+        (await actor.$toAPObject(!!includeMeta)) as APEXActor
+      );
     }
 
     // Look for an object.
     const object = await this.SocialObject.factoryId(id);
-    if (object != null) {
-      return (await object.$toAPObject(includeMeta)) as APEXObject;
+    if (object.guid != null) {
+      return await this.apex.fromJSONLD(
+        (await object.$toAPObject(!!includeMeta)) as APEXObject
+      );
     }
 
-    throw new Error('Not found.');
+    return null;
   }
 
   async saveObject(object: APEXObject) {
-    // console.log('saveObject', object);
+    const formattedObject = await this.apex.toJSONLD(object);
 
-    if (isActivity(object)) {
-      const obj = await this.SocialActivity.factory();
-      await obj.$acceptAPObject(object, true);
+    console.log('saveObject', formattedObject);
 
-      return await obj.$save();
+    try {
+      if (isActivity(formattedObject)) {
+        const obj = await this.SocialActivity.factory();
+        await obj.$acceptAPObject(formattedObject, true);
+
+        return await obj.$saveSkipAC();
+      }
+
+      if (isActor(formattedObject)) {
+        const obj = await this.SocialActor.factory();
+        await obj.$acceptAPObject(formattedObject, true);
+
+        return await obj.$saveSkipAC();
+      }
+
+      if (isObject(formattedObject)) {
+        const obj = await this.SocialObject.factory();
+        await obj.$acceptAPObject(formattedObject, true);
+
+        return await obj.$saveSkipAC();
+      }
+    } catch (e: any) {
+      if (e instanceof HttpError && e.status === 409) {
+        // Object is already saved.
+        return true;
+      }
+
+      console.error('Error:', e);
+      throw e;
     }
 
-    if (isActor(object)) {
-      const obj = await this.SocialActor.factory();
-      await obj.$acceptAPObject(object, true);
-
-      return await obj.$save();
-    }
-
-    if (isObject(object)) {
-      const obj = await this.SocialObject.factory();
-      await obj.$acceptAPObject(object, true);
-
-      return await obj.$save();
-    }
-
+    console.error(
+      'Unsupported object type:',
+      (formattedObject as { type?: string }).type
+    );
     throw new Error('Unsupported object type.');
   }
 
-  async getActivity(id: string, includeMeta: boolean) {
-    // console.log('getActivity', { id, includeMeta });
+  async getActivity(id: string, includeMeta?: boolean) {
+    console.log('getActivity', { id, includeMeta });
 
     // Look for an activity.
     const activity = await this.SocialActivity.factoryId(id);
-    if (activity != null) {
-      return (await activity.$toAPObject(includeMeta)) as APEXActivity;
+    if (activity.guid != null) {
+      return await this.apex.fromJSONLD(
+        (await activity.$toAPObject(!!includeMeta)) as APEXActivity
+      );
     }
 
-    throw new Error('Not found.');
+    return null;
   }
 
   async findActivityByCollectionAndObjectId(
@@ -173,37 +256,72 @@ class ApexStore implements IApexStore {
     objectId: string,
     includeMeta: boolean
   ) {
-    // TODO
     console.log('findActivityByCollectionAndObjectId', {
       collection,
       objectId,
       includeMeta,
     });
-    return {
-      id: 'id',
-      type: 'Activity',
-      actor: ['someone'],
-      object: { type: 'Object' },
-    } as APEXActivity;
+
+    const entity = await this.nymph.getEntity(
+      { class: this.SocialActivity },
+      {
+        type: '&',
+        contain: ['_meta', collection],
+      },
+      {
+        type: '|',
+        equal: ['object', objectId],
+        contain: ['object', objectId],
+        qref: [
+          'object',
+          [
+            { class: this.SocialObject },
+            { type: '&', equal: ['id', objectId] },
+          ],
+        ],
+      }
+    );
+    if (entity) {
+      return await this.apex.fromJSONLD(
+        (await entity.$toAPObject(includeMeta)) as APEXActivity
+      );
+    }
+    return null;
   }
 
   async findActivityByCollectionAndActorId(
     collection: string,
     actorId: string,
-    includeMeta: boolean
+    includeMeta?: boolean
   ) {
-    // TODO
     console.log('findActivityByCollectionAndActorId', {
       collection,
       actorId,
       includeMeta,
     });
-    return {
-      id: 'id',
-      type: 'Activity',
-      actor: ['someone'],
-      object: { type: 'Object' },
-    } as APEXActivity;
+
+    const entity = await this.nymph.getEntity(
+      { class: this.SocialActivity },
+      {
+        type: '&',
+        contain: ['_meta', collection],
+      },
+      {
+        type: '|',
+        equal: ['actor', actorId],
+        contain: ['actor', actorId],
+        qref: [
+          'actor',
+          [{ class: this.SocialActor }, { type: '&', equal: ['id', actorId] }],
+        ],
+      }
+    );
+    if (entity) {
+      return await this.apex.fromJSONLD(
+        (await entity.$toAPObject(!!includeMeta)) as APEXActivity
+      );
+    }
+    return null;
   }
 
   /**
@@ -221,7 +339,6 @@ class ApexStore implements IApexStore {
     blockList?: string[],
     query?: any
   ) {
-    // TODO
     console.log('getStream', {
       collectionId,
       limit,
@@ -229,38 +346,115 @@ class ApexStore implements IApexStore {
       blockList,
       query,
     });
-    return [
-      // {
-      //   id: 'id',
-      //   type: 'Activity',
-      //   actor: ['someone'],
-      //   object: { type: 'Object' },
-      // } as APEXActivity,
-    ];
+
+    let afterEntry = after ? await this.SocialActivity.factoryId(after) : null;
+    if (afterEntry && afterEntry.guid == null) {
+      throw new Error("Couldn't find last activity.");
+    }
+
+    const entries = await this.nymph.getEntities(
+      {
+        class: this.SocialActivity,
+        sort: 'cdate',
+        reverse: true,
+        ...(limit != null ? { limit } : {}),
+      },
+      {
+        type: '&',
+        contain: ['_meta', collectionId],
+        ...(afterEntry != null && afterEntry.guid != null
+          ? {
+              lte: ['cdate', afterEntry.cdate || 0],
+              '!guid': afterEntry.guid,
+            }
+          : {}),
+      },
+      ...(blockList?.length
+        ? [
+            {
+              type: '!&',
+              equal: blockList.map(
+                (actor) => ['actor', actor] as [string, string]
+              ),
+              contain: blockList.map(
+                (actor) => ['actor', actor] as [string, string]
+              ),
+              qref: blockList.map(
+                (actor) =>
+                  [
+                    'actor',
+                    [
+                      { class: this.SocialActor },
+                      {
+                        type: '&',
+                        equal: ['id', actor],
+                      },
+                    ],
+                  ] as [string, [Options, ...Selector[]]]
+              ),
+            } as Selector,
+          ]
+        : [])
+    );
+
+    return (await Promise.all(
+      entries.map(
+        async (e) =>
+          await this.apex.fromJSONLD(await e.entry.$toAPObject(false))
+      )
+    )) as APEXActivity[];
   }
 
   async getStreamCount(collectionId: string) {
-    // TODO
     console.log('getStreamCount', { collectionId });
-    return 1;
+    return await this.nymph.getEntities(
+      { class: this.SocialActivity, return: 'count' },
+      {
+        type: '&',
+        contain: ['_meta', collectionId],
+      }
+    );
   }
 
   async getContext(documentUrl: string) {
-    // TODO
     console.log('getContext', { documentUrl });
-    return { contextUrl: '', documentUrl: '', document: {} };
+
+    const contextEntity = await this.nymph.getEntity(
+      { class: this.SocialContext, skipAc: true },
+      { type: '&', equal: ['documentUrl', documentUrl] }
+    );
+
+    if (contextEntity) {
+      return await contextEntity.$toJsonContext();
+    }
+
+    return null;
   }
 
   async getUsercount() {
-    // TODO
     console.log('getUsercount');
-    return 1;
+
+    return await this.nymph.getEntities(
+      { class: this.User, return: 'count', skipAc: true },
+      { type: '&', truthy: 'enabled' }
+    );
   }
 
   async saveContext(context: Context) {
-    // TODO
     console.log('saveContext', context);
-    return;
+
+    const contextEntity = await this.SocialContext.factory();
+
+    contextEntity.$acceptJsonContext(context, true);
+
+    try {
+      if (!(await contextEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save context.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
+    }
   }
 
   /**
@@ -268,18 +462,50 @@ class ApexStore implements IApexStore {
    * Return undefined if it has already been saved (the ID exists).
    */
   async saveActivity(activity: APEXActivity | APEXIntransitiveActivity) {
-    // TODO
-    console.log('saveActivity', activity);
-    return true;
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('saveActivity', formattedActivity);
+
+    const activityEntity = await this.SocialActivity.factory();
+    await activityEntity.$acceptAPObject(formattedActivity, true);
+
+    try {
+      return await activityEntity.$saveSkipAC();
+    } catch (e: any) {
+      if (e instanceof HttpError && e.status === 409) {
+        return undefined;
+      }
+
+      console.error('Error:', e);
+      throw e;
+    }
   }
 
   async removeActivity(
     activity: APEXActivity | APEXIntransitiveActivity,
     actorId: string
   ) {
-    // TODO
-    console.log('removeActivity', activity, { actorId });
-    return [];
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('removeActivity', formattedActivity, { actorId });
+
+    const activities = await this.nymph.getEntities(
+      { class: this.SocialActivity, skipAc: true },
+      { type: '&', equal: ['id', formattedActivity.id] },
+      {
+        type: '|',
+        equal: ['actor', actorId],
+        contain: ['actor', actorId],
+        qref: [
+          'actor',
+          [{ class: this.SocialActor }, { type: '&', equal: ['id', actorId] }],
+        ],
+      }
+    );
+
+    for (let activityEntity of activities) {
+      await activityEntity.$delete();
+    }
   }
 
   /**
@@ -289,9 +515,33 @@ class ApexStore implements IApexStore {
     activity: APEXActivity | APEXIntransitiveActivity,
     fullReplace: boolean
   ) {
-    // TODO
-    console.log('updateActivity', activity, { fullReplace });
-    return activity;
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('updateActivity', formattedActivity, { fullReplace });
+
+    const activityEntity = await this.nymph.getEntity(
+      { class: this.SocialActivity, skipAc: true },
+      { type: '&', equal: ['id', formattedActivity.id] }
+    );
+
+    if (!activityEntity) {
+      throw new Error('Activity not found.');
+    }
+
+    await activityEntity.$acceptAPObject(formattedActivity, fullReplace);
+
+    try {
+      if (!(await activityEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save activity.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
+    }
+
+    return await this.apex.fromJSONLD(
+      (await activityEntity.$toAPObject(true)) as APEXActivity
+    );
   }
 
   /**
@@ -303,23 +553,146 @@ class ApexStore implements IApexStore {
     value: any,
     remove: boolean
   ) {
-    // TODO
-    console.log('updateActivityMeta', activity, { key, value, remove });
-    return activity;
+    const formattedActivity = await this.apex.toJSONLD(activity);
+
+    console.log('updateActivityMeta', formattedActivity, {
+      key,
+      value,
+      remove,
+    });
+
+    if (key !== 'collection') {
+      throw new Error(
+        'APEX has started using another Activity meta key than "collection"! This is an issue.'
+      );
+    }
+
+    const activityEntity = await this.nymph.getEntity(
+      { class: this.SocialActivity, skipAc: true },
+      { type: '&', equal: ['id', formattedActivity.id] }
+    );
+
+    if (!activityEntity) {
+      throw new Error('Activity not found.');
+    }
+
+    if (remove) {
+      if (activityEntity._meta && key in activityEntity._meta) {
+        if (Array.isArray(activityEntity._meta[key])) {
+          const idx = (activityEntity._meta[key] as string[]).indexOf(value);
+          if (idx !== -1) {
+            (activityEntity._meta[key] as string[]).splice(idx);
+          }
+        } else {
+          delete activityEntity._meta[key];
+        }
+      }
+    } else {
+      if (!activityEntity._meta) {
+        activityEntity._meta = {};
+      }
+
+      if (!(key in activityEntity._meta)) {
+        activityEntity._meta[key] = [];
+      } else if (typeof activityEntity._meta[key] === 'string') {
+        activityEntity._meta[key] = [
+          activityEntity._meta[key] as unknown as string,
+        ];
+      }
+
+      (activityEntity._meta[key] as string[]).push(value);
+    }
+
+    try {
+      if (!(await activityEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save activity.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
+    }
+
+    return await this.apex.fromJSONLD(
+      (await activityEntity.$toAPObject(true)) as APEXActivity
+    );
   }
 
   generateId() {
-    // console.log('generateId');
+    console.log('generateId');
+
     return guid();
   }
 
-  async updateObject(obj: APEXObject, actorId: string, fullReplace: boolean) {
-    // TODO
-    console.log('updateObject', obj, {
+  async updateObject(
+    object: APEXObject,
+    actorId: string,
+    fullReplace: boolean
+  ) {
+    const formattedObject = await this.apex.toJSONLD(object);
+
+    console.log('updateObject', formattedObject, {
       actorId,
       fullReplace,
     });
-    return obj;
+
+    const objectEntity = await this.nymph.getEntity(
+      { class: this.SocialObject, skipAc: true },
+      { type: '&', equal: ['id', formattedObject.id] }
+    );
+
+    if (!objectEntity || !objectEntity.id) {
+      throw new Error('Object not found.');
+    }
+
+    await objectEntity.$acceptAPObject(formattedObject, fullReplace);
+
+    try {
+      if (!(await objectEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save object.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
+    }
+
+    const activitiesWithObject = await this.nymph.getEntities(
+      { class: this.SocialActivity, skipAc: true },
+      {
+        type: '&',
+        contain: [
+          ['object', formattedObject.id],
+          ['object', 'type'],
+        ],
+      }
+    );
+
+    for (let activity of activitiesWithObject) {
+      if (Array.isArray(activity.object)) {
+        for (let i = 0; i <= activity.object.length; i++) {
+          let curObject = activity.object[i];
+          if (typeof curObject !== 'string' && curObject.type !== 'Link') {
+            activity.object[i] = objectEntity.id;
+          }
+        }
+      } else if (
+        activity.object &&
+        typeof activity.object !== 'string' &&
+        activity.object.type !== 'Link'
+      ) {
+        activity.object = objectEntity.id;
+      }
+
+      try {
+        await activity.$saveSkipAC();
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
+    }
+
+    return await this.apex.fromJSONLD(
+      (await objectEntity.$toAPObject(true)) as APEXObject
+    );
   }
 
   /**
@@ -332,8 +705,38 @@ class ApexStore implements IApexStore {
    * If no deliveries exist, return null.
    */
   async deliveryDequeue() {
-    // TODO
     console.log('deliveryDequeue');
+
+    const delivery = await this.nymph.getEntity(
+      { class: this.SocialDelivery, sort: 'after', skipAc: true },
+      { type: '&', lt: ['after', new Date().getTime()] }
+    );
+
+    if (delivery != null) {
+      const value = {
+        address: delivery.address,
+        actorId: delivery.actorId,
+        signingKey: delivery.signingKey,
+        body: delivery.body,
+        attempt: delivery.attempt,
+        after: new Date(delivery.after),
+      };
+
+      await delivery.$deleteSkipAC();
+
+      return value;
+    }
+
+    const next = await this.nymph.getEntity({
+      class: this.SocialDelivery,
+      sort: 'after',
+      skipAc: true,
+    });
+
+    if (next != null) {
+      return { waitUntil: new Date(next.after) };
+    }
+
     return null;
   }
 
@@ -343,13 +746,34 @@ class ApexStore implements IApexStore {
     addresses: string | string[],
     signingKey: string
   ) {
-    // TODO
     console.log('deliveryEnqueue', {
       actorId,
       body,
       addresses,
       signingKey,
     });
+
+    if (!Array.isArray(addresses)) {
+      addresses = [addresses];
+    }
+
+    for (let address of addresses) {
+      const delivery = await this.SocialDelivery.factory();
+      delivery.address = address;
+      delivery.actorId = actorId;
+      delivery.signingKey = signingKey;
+      delivery.body = body;
+      delivery.attempt = 0;
+      delivery.after = new Date().getTime();
+
+      try {
+        await delivery.$saveSkipAC();
+      } catch (e) {
+        console.error('Error:', e);
+        throw e;
+      }
+    }
+
     return true;
   }
 
@@ -357,7 +781,24 @@ class ApexStore implements IApexStore {
    * Insert the delivery back into the DB after updating its `after` prop.
    */
   async deliveryRequeue(delivery: Delivery) {
-    // TODO
     console.log('deliveryRequeue', delivery);
+
+    const deliveryEntity = await this.SocialDelivery.factory();
+    deliveryEntity.address = delivery.address;
+    deliveryEntity.actorId = delivery.actorId;
+    deliveryEntity.signingKey = delivery.signingKey;
+    deliveryEntity.body = delivery.body;
+    deliveryEntity.attempt = delivery.attempt + 1;
+    deliveryEntity.after =
+      delivery.after.getTime() + Math.pow(10, deliveryEntity.attempt);
+
+    try {
+      if (!(await deliveryEntity.$saveSkipAC())) {
+        throw new Error("Couldn't save delivery.");
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      throw e;
+    }
   }
 }

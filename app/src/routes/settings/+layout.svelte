@@ -16,7 +16,7 @@
 </AppDrawerLayout>
 
 <script lang="ts">
-  import { mdiTuneVerticalVariant, mdiClipboardCheckMultiple } from '@mdi/js';
+  import { mdiTuneVerticalVariant } from '@mdi/js';
   import List, { Item, Text, Graphic } from '@smui/list';
   import { Icon } from '@smui/common';
   import { Svg } from '@smui/common';
@@ -33,11 +33,6 @@
       route: 'general',
       label: 'General',
       icon: mdiTuneVerticalVariant,
-    },
-    {
-      route: 'finished-projects',
-      label: 'Finished Projects',
-      icon: mdiClipboardCheckMultiple,
     },
   ];
 

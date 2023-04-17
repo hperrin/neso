@@ -9,11 +9,12 @@
     "noImplicitAny": true,
     "removeComments": true,
     "sourceMap": true,
-    "outDir": "build/nymph",
+    "outDir": "../build/nymph",
     "resolveJsonModule": true,
-    "rootDir": "server/",
-    "declaration": true
+    "rootDir": "./",
+    "declaration": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["server/**/*", "types/**/*"],
+  "include": ["./**/*", "../src/types/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }

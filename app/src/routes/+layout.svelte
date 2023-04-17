@@ -132,7 +132,6 @@
   let {
     readyPromise,
     settingsReadyPromise,
-    projectsReadyPromise,
     loading,
     user,
     smallWindow,
@@ -143,7 +142,6 @@
   $: ({
     readyPromise,
     settingsReadyPromise,
-    projectsReadyPromise,
     loading,
     user,
     smallWindow,
@@ -161,11 +159,7 @@
   $: if ($settingsReadyPromise !== previousSettingsReadyPromise) {
     // When the user logs in, the promises will change.
     promisesReady = false;
-    Promise.all([
-      $readyPromise,
-      $settingsReadyPromise,
-      $projectsReadyPromise,
-    ]).then(() => {
+    Promise.all([$readyPromise, $settingsReadyPromise]).then(() => {
       promisesReady = true;
     });
     previousSettingsReadyPromise = $settingsReadyPromise;

@@ -6,7 +6,10 @@ declare module 'activitypub-express' {
     APActor,
   } from '_activitypub';
 
-  const ActivitypubExpress: any;
+  const ActivitypubExpress: (opts: any) => {
+    fromJSONLD: <T>(obj: T) => Promise<T>;
+    toJSONLD: <T>(obj: T) => Promise<T>;
+  };
 
   export default ActivitypubExpress;
 
@@ -54,26 +57,26 @@ declare module 'activitypub-express' {
      */
     setup(optionalActor: APEXActor): Promise<void>;
 
-    getObject(id: string, includeMeta: boolean): Promise<APEXObject>;
+    getObject(id: string, includeMeta?: boolean): Promise<APEXObject | null>;
 
     saveObject(object: APEXObject): Promise<boolean>;
 
     getActivity(
       id: string,
-      includeMeta: boolean
-    ): Promise<APEXActivity | APEXIntransitiveActivity>;
+      includeMeta?: boolean
+    ): Promise<APEXActivity | APEXIntransitiveActivity | null>;
 
     findActivityByCollectionAndObjectId(
       collection: string,
       objectId: string,
-      includeMeta: boolean
-    ): Promise<APEXActivity | APEXIntransitiveActivity>;
+      includeMeta?: boolean
+    ): Promise<APEXActivity | APEXIntransitiveActivity | null>;
 
     findActivityByCollectionAndActorId(
       collection: string,
       actorId: string,
-      includeMeta: boolean
-    ): Promise<APEXActivity | APEXIntransitiveActivity>;
+      includeMeta?: boolean
+    ): Promise<APEXActivity | APEXIntransitiveActivity | null>;
 
     /**
      * Return a specific collection (stream of activitites), e.g. a user's inbox
@@ -93,7 +96,7 @@ declare module 'activitypub-express' {
 
     getStreamCount(collectionId: string): Promise<number>;
 
-    getContext(documentUrl: string): Promise<Context>;
+    getContext(documentUrl: string): Promise<Context | null>;
 
     getUsercount(): Promise<number>;
 
@@ -136,7 +139,7 @@ declare module 'activitypub-express' {
       obj: APEXObject,
       actorId: string,
       fullReplace: boolean
-    ): Promise<any>;
+    ): Promise<APEXObject>;
 
     /**
      * Find the first deliver where `after` is less than `new Date()`, delete
