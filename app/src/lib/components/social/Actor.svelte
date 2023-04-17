@@ -145,8 +145,8 @@
   import type { SessionStuff } from '$lib/nymph';
 
   export let actor: SocialActor & SocialActorData;
-  export let stuff: SessionStuff;
   export let expand: boolean;
+  export let stuff: SessionStuff;
 
   let { SocialObject } = stuff;
   $: ({ SocialObject } = stuff);

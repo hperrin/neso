@@ -88,6 +88,13 @@ export class SocialActivity extends Entity<SocialActivityData> {
     return entity;
   }
 
+  static async getFeed(
+    feed: 'home' | 'favorites' | 'local' | 'global' | 'notifications',
+    after?: string
+  ): Promise<(SocialActivity & SocialActivityData)[]> {
+    return await this.serverCallStatic('getFeed', [feed, after]);
+  }
+
   async $send() {
     return await this.$serverCall('$send', [], true);
   }

@@ -36,6 +36,11 @@ export default async function handleOnboarding(
       followers: `${AP_USER_FOLLOWERS_PREFIX(ADDRESS)}${user.username}`,
       following: `${AP_USER_FOLLOWING_PREFIX(ADDRESS)}${user.username}`,
       liked: `${AP_USER_LIKED_PREFIX(ADDRESS)}${user.username}`,
+      icon: {
+        type: 'Image',
+        mediaType: 'image/png',
+        url: user.$getAvatar(),
+      },
     } as APEXActor,
     true
   );

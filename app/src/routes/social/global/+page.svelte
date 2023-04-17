@@ -1,5 +1,15 @@
-<div class="page-content">
-  <h1>Global</h1>
+<Feed
+  feed="global"
+  bind:activities
+  emptyMessage="Your instance's view of the world is empty!"
+  stuff={data}
+/>
 
-  <p>This page isn't done yet.</p>
-</div>
+<script lang="ts">
+  import Feed from '$lib/components/social/Feed.svelte';
+  import type { PageData } from './$types';
+
+  export let data: PageData;
+  let { activities } = data;
+  $: ({ activities } = data);
+</script>

@@ -1,6 +1,7 @@
 import type { Selector } from '@nymphjs/nymph';
 import { nymphJoiProps, TilmeldAccessLevels } from '@nymphjs/nymph';
-import { Tilmeld, tilmeldJoiProps } from '@nymphjs/tilmeld';
+import type { Tilmeld } from '@nymphjs/tilmeld';
+import { tilmeldJoiProps } from '@nymphjs/tilmeld';
 import { HttpError } from '@nymphjs/server';
 import Joi from 'joi';
 import type { SchemaMap } from 'joi';
@@ -10,6 +11,7 @@ import type { APLink, APActivity, APActor, APObject } from '_activitypub';
 import {
   AP_PUBLIC_ADDRESS,
   AP_USER_OUTBOX_PREFIX,
+  AP_USER_INBOX_PREFIX,
 } from '../utils/constants.js';
 
 import {
@@ -77,6 +79,7 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
   static ETYPE = 'socialactivity';
   static class = 'SocialActivity';
 
+  public static clientEnabledStaticMethods = ['getFeed'];
   protected $clientEnabledMethods = ['$send'];
   protected $privateData = ['_meta'];
   protected $protectedData = ['id'];
@@ -111,6 +114,58 @@ export class SocialActivity extends SocialObjectBase<SocialActivityData> {
       }
     }
     return entity;
+  }
+
+  static async getFeed(
+    feed: 'home' | 'favorites' | 'local' | 'global' | 'notifications',
+    after?: string
+  ) {
+    const user = (this.nymph.tilmeld as Tilmeld).currentUser;
+
+    let afterEntry =
+      after && typeof after === 'string' ? await this.factoryId(after) : null;
+    if (afterEntry && afterEntry.guid == null) {
+      throw new HttpError("Couldn't find last activity.", 400);
+    }
+
+    if (!user) {
+      throw new HttpError('You are not logged in.', 401);
+    }
+
+    if (feed === 'home') {
+      const collection = `${AP_USER_INBOX_PREFIX(this.ADDRESS)}${
+        user.username
+      }}`;
+
+      return await this.nymph.getEntities(
+        { class: this, limit: 20 },
+        {
+          type: '&',
+          contain: ['_meta', collection],
+          ...(afterEntry != null && afterEntry.guid != null
+            ? {
+                lte: ['cdate', afterEntry.cdate || 0],
+                '!guid': afterEntry.guid,
+              }
+            : {}),
+        }
+      );
+    }
+
+    if (feed === 'global') {
+      return await this.nymph.getEntities(
+        { class: this, limit: 20 },
+        ...(afterEntry != null && afterEntry.guid != null
+          ? ([
+              {
+                type: '&',
+                lte: ['cdate', afterEntry.cdate || 0],
+                '!guid': afterEntry.guid,
+              },
+            ] as Selector[])
+          : [])
+      );
+    }
   }
 
   constructor(guid?: string) {

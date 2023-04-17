@@ -1,3 +1,5 @@
+<svelte:document on:scroll|passive|capture={handleDocumentScroll} />
+
 {#if object.type === 'Collection' || object.type === 'OrderedCollection'}
   <div class:level-bar={levelBar}>
     {#if items}
@@ -30,15 +32,9 @@
       {/await}
     {/if}
   </div>
-  <pre
-    style="max-width: 100%; max-height: 350px; overflow: auto;">{JSON.stringify(
-      object,
-      null,
-      2
-    )}</pre>
 {:else if object.type === 'CollectionPage' || object.type === 'OrderedCollectionPage'}
   {#if items}
-    <div class="next-scroll-container">
+    <div bind:this={nextScrollContainer}>
       <!-- TODO: implement infinite scroll -->
       <APObjectArray
         {items}
@@ -48,15 +44,24 @@
         {onlyActors}
         {onlyObjects}
         {stuff}
+        on:load={handleObjectArrayLoaded}
       />
     </div>
   {/if}
-  <pre
-    style="max-width: 100%; max-height: 350px; overflow: auto;">{JSON.stringify(
-      object,
-      null,
-      2
-    )}</pre>
+
+  {#await nextPromise then nextEntity}
+    {#if nextEntity}
+      <svelte:self
+        object={nextEntity}
+        {expand}
+        {linkParent}
+        {onlyActivities}
+        {onlyActors}
+        {onlyObjects}
+        {stuff}
+      />
+    {/if}
+  {/await}
 {:else}
   <Paper style="margin-bottom: 1em;">
     <Content>
@@ -186,6 +191,9 @@
   $: ({ SocialObject } = stuff);
 
   let menu: Menu;
+  let nextScrollContainer: HTMLDivElement;
+  let objectArrayLoaded = false;
+  let showNextPage = false;
   let showSource = false;
 
   $: html =
@@ -246,6 +254,50 @@
         ? SocialObject.getIdObject(object.first.href || object.first.id)
         : Promise.resolve(null)
       : Promise.resolve(null);
+
+  $: nextPromise =
+    showNextPage &&
+    (object.type === 'CollectionPage' ||
+      object.type === 'OrderedCollectionPage') &&
+    object.next
+      ? Array.isArray(object.next)
+        ? typeof object.next[0] === 'string'
+          ? SocialObject.getIdObject(object.next[0])
+          : object.next[0].href || object.next[0].id
+          ? SocialObject.getIdObject(object.next[0].href || object.next[0].id)
+          : Promise.resolve(null)
+        : typeof object.next === 'string'
+        ? SocialObject.getIdObject(object.next)
+        : object.next.href || object.next.id
+        ? SocialObject.getIdObject(object.next.href || object.next.id)
+        : Promise.resolve(null)
+      : Promise.resolve(null);
+
+  function handleObjectArrayLoaded() {
+    objectArrayLoaded = true;
+  }
+
+  function handleDocumentScroll() {
+    if (nextScrollContainer == null || !objectArrayLoaded || showNextPage) {
+      return;
+    }
+
+    const el = nextScrollContainer.lastElementChild;
+    if (el == null) {
+      return;
+    }
+
+    const bounding = el.getBoundingClientRect();
+
+    if (
+      bounding.top >= 0 &&
+      bounding.left >= 0 &&
+      bounding.left <= window.innerWidth &&
+      bounding.top <= window.innerHeight + 600
+    ) {
+      showNextPage = true;
+    }
+  }
 </script>
 
 <style>

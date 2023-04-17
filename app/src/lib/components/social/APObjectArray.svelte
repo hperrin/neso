@@ -33,6 +33,7 @@
 
 <script lang="ts">
   import type { APObject, APLink } from '_activitypub';
+  import { createEventDispatcher } from 'svelte';
   import Paper, { Title, Content } from '@smui/paper';
   import Activity from '$lib/components/social/Activity.svelte';
   import Actor from '$lib/components/social/Actor.svelte';
@@ -56,6 +57,8 @@
     isSocialObject,
   } from '$lib/utils/checkTypes.js';
   import type { SessionStuff } from '$lib/nymph';
+
+  const dispatch = createEventDispatcher();
 
   export let items: (APObject | APLink)[];
   export let expand: boolean;
@@ -95,6 +98,8 @@
         entries.push({ entity });
       }
     }
+
+    dispatch('load');
 
     return entries;
   });

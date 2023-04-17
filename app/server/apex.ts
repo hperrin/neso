@@ -139,77 +139,8 @@ class ApexStore implements IApexStore {
         (await actor.$toAPObject(!!includeMeta)) as APEXActor
       );
     } else if (id.startsWith(AP_USER_ID_PREFIX(ADDRESS))) {
-      // This is a user who doesn't have an actor object yet. Let's make them
-      // one.
-      const username = id.substring(AP_USER_ID_PREFIX(ADDRESS).length);
-      const user = await this.User.factoryUsername(username);
-
-      if (user.guid == null) {
-        return null;
-      }
-
-      actor.$acceptAPObject(
-        {
-          type: 'Person',
-          id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
-          name: user.name,
-          preferredUsername: user.username,
-          inbox: `${AP_USER_INBOX_PREFIX(ADDRESS)}${user.username}`,
-          outbox: `${AP_USER_OUTBOX_PREFIX(ADDRESS)}${user.username}`,
-          followers: `${AP_USER_FOLLOWERS_PREFIX(ADDRESS)}${user.username}`,
-          following: `${AP_USER_FOLLOWING_PREFIX(ADDRESS)}${user.username}`,
-          liked: `${AP_USER_LIKED_PREFIX(ADDRESS)}${user.username}`,
-        } as APEXActor,
-        true
-      );
-
-      // Create a key pair.
-      const [publicKey, privateKey] = await new Promise<[string, string]>(
-        (resolve, reject) =>
-          generateKeyPair(
-            'rsa',
-            {
-              modulusLength: 4096,
-              publicKeyEncoding: {
-                type: 'spki',
-                format: 'pem',
-              },
-              privateKeyEncoding: {
-                type: 'pkcs8',
-                format: 'pem',
-              },
-            },
-            (error, publicKey, privateKey) => {
-              if (error) {
-                reject(error);
-              }
-              resolve([publicKey, privateKey]);
-            }
-          )
-      );
-
-      actor.user = user;
-      actor.publicKey = {
-        id: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}#main-key`,
-        owner: `${AP_USER_ID_PREFIX(ADDRESS)}${user.username}`,
-        publicKeyPem: publicKey,
-      };
-      actor._meta = {
-        privateKey,
-      };
-
-      try {
-        if (!(await actor.$saveSkipAC())) {
-          throw new Error("Couldn't create actor for user.");
-        }
-      } catch (e) {
-        console.error('Error:', e);
-        throw e;
-      }
-
-      return await this.apex.fromJSONLD(
-        (await actor.$toAPObject(!!includeMeta)) as APEXActor
-      );
+      // This is a user who doesn't have an actor object yet. That's an error.
+      throw new Error(`Local user doesn't have SocialActor entity! ${id}`);
     }
 
     // Look for an object.
