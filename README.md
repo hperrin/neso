@@ -8,6 +8,45 @@ This is a [Svelte Hackathon](https://hack.sveltesociety.dev/) project!
 
 Check it out live at [neso.social](https://neso.social/).
 
+# Notes for Hackathon Reviewers
+
+The main branch for the Hackathon submission is the [master branch](https://github.com/hperrin/neso/tree/master).
+
+The live site will actually retrieve and receive data from federated instances and push data to federated instances, but a local version will only retrieve data from other instances since instances don't accept data from or push data to something identifying itself as "127.0.0.1".
+
+## Things that Work
+
+- Local feed.
+- Global feed.
+- Posting.
+- Searching for people on all instances (try `@hperrin@port87.social` in the search bar).
+- Searching for posts and activies from other instances (try something like `https://hachyderm.io/users/hildjj/statuses/110202067793729134`) in the search bar.
+- Seeing posts/followers/following from people on other instances in their profile page. (It's quite slow the first time. Also, once its loaded, there's a bug that you won't see newer posts there anymore.)
+- Following people on other instances.
+- Liking posts.
+- Boosting posts.
+- Replying to posts.
+- Viewing the replies on posts from other instance.
+- OAuth (you can log in from other clients).
+- WebFinger (people on other servers can find you with your @username@neso.social address).
+- ActivityPub (most of ActivityPub works, so you should be able to see people and posts from **Mastodon**, **Pleroma**, **PixelFed**, **PeerTube**, and **Friendica**).
+
+## Things that don't work.
+
+- Home feed. (Technically it does work, but receiving a publish to your inbox from another instance is buggy and almost never works because of JSONLD issues. Also receiving from the same instance doesn't work because mentions don't work. Another instance of Neso should work though.)
+- Mentions.
+- Hashtags.
+- Seeing images attached to posts.
+- Seeing posts/followers/following from people on the same instance on their profile page.
+- The posts being sorted correctly on the global feed. (They show what was added to the database most recently instead of what was published most recently.)
+- The indicators for whether you have liked a post, boosted a post, or followed someone.
+- Logging in from a Mastodon client (the Mastodon API is only partially done, and there are no clients that use just the ActivityPub spec.)
+- Blocking users (not implemented, but the button is there).
+- Viewing the replies on posts from the same isntance (local posts are missing the replies collection).
+- Changing your name in the settings doesn't change your name on your ActivityPub profile.
+
+# Now back to the readme
+
 ## Structure
 
 This repository contains two separate parts.
